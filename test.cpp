@@ -24,9 +24,30 @@
 #include <assert.h>
 #include "chillduino.h"
 
-int main(void) {
-  Chillduino::setup();
-  Chillduino::loop();
+class SerialShouldHaveBaud {
+private:
+  unsigned long _expected;
+  unsigned long _actual;
 
+public:
+  SerialShouldHaveBaud() : _expected(0), _actual(0) { }
+  SerialShouldHaveBaud(unsigned long baud) : _expected(baud), _actual(0) { }
+
+  void begin(unsigned long baud) {
+    _actual = baud;
+  }
+
+  ~SerialShouldHaveBaud(void) {
+    assert(_actual == _expected);
+  }
+};
+
+void shouldStartSerialCommunication(void) {
+  SerialShouldHaveBaud serial(9600);
+  Chillduino<SerialShouldHaveBaud>::setup(&serial);
+}
+
+int main(void) {
+  shouldStartSerialCommunication();
   return 0;
 }
