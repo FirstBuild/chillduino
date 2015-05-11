@@ -23,4 +23,10 @@
 
 #include "chillduino.h"
 
-int Chillduino::todo = 42;
+void Chillduino::setup(void) {
+
+}
+
+void Chillduino::loop(void) {
+
+}

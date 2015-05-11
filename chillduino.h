@@ -28,7 +28,8 @@
 
 class Chillduino {
 public:
-  static int todo;
+  static void setup(void);
+  static void loop(void);
 };
 
 #endif /* CHILLDUINO_H */
