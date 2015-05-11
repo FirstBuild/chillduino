@@ -23,10 +23,12 @@
 
 #include "chillduino.h"
 
+typedef Chillduino<Serial_> ChillHub;
+
 void setup(void) {
-  Chillduino::setup();
+  ChillHub::setup(&Serial);
 }
 
 void loop(void) {
-  Chillduino::loop();
+  ChillHub::loop();
 }
