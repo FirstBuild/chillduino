@@ -24,7 +24,7 @@
 #ifndef CHILLDUINO_H
 #define CHILLDUINO_H
 
-#define CHILLDUINO_VERSION "0.0.0"
+#define CHILLDUINO_VERSION "0.1.0"
 
 class Chillduino {
 public:
