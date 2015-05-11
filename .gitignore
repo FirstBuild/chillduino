@@ -1,3 +1,9 @@
+# Build directories
+.build_coverage
+
+# SCons database
+.sconsign.dblite
+
 # Compiled Object files
 *.slo
 *.lo
