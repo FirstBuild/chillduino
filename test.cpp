@@ -22,9 +22,11 @@
  */
 
 #include <assert.h>
-#include <chillduino.h>
+#include "chillduino.h"
 
 int main(void) {
-  assert(Chillduino::todo == 42);
+  Chillduino::setup();
+  Chillduino::loop();
+
   return 0;
 }
