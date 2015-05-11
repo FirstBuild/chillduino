@@ -1,0 +1,17 @@
+language: cpp
+
+branches:
+  only:
+    - master
+
+compiler:
+  - gcc
+
+before_install:
+  - sudo pip install cpp-coveralls
+
+script:
+  - scons test
+
+after_success:
+  - coveralls --build-root . --gcov-options '\-lp'
