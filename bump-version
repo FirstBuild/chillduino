@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+sed -i '' 's/\(#define CHILLDUINO_VERSION\).*/\1 "'$1'"/' chillduino.h
