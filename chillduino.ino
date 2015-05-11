@@ -21,15 +21,12 @@
  *
  */
 
-#ifndef CHILLDUINO_H
-#define CHILLDUINO_H
+#include "chillduino.h"
 
-#define CHILLDUINO_VERSION "0.2.0"
+void setup(void) {
+  Chillduino::setup();
+}
 
-class Chillduino {
-public:
-  static void setup(void);
-  static void loop(void);
-};
-
-#endif /* CHILLDUINO_H */
+void loop(void) {
+  Chillduino::loop();
+}
