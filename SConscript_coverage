@@ -12,12 +12,10 @@ env.Append(CCFLAGS='-fno-exceptions')
 env.Append(CCFLAGS='-fno-rtti')
 env.Append(LINKFLAGS='--coverage')
 
-env.Clean('test', 'chillduino.gcno')
-env.Clean('test', 'chillduino.gcda')
 env.Clean('test', 'test.gcno')
 env.Clean('test', 'test.gcda')
 
-program = env.Program('test', ['test.cpp', 'chillduino.cpp'])
+program = env.Program('test', 'test.cpp')
 
 env.Default(program)
 env.Alias('test', program, program[0].abspath)

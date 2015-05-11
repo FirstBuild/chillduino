@@ -24,12 +24,25 @@
 #ifndef CHILLDUINO_H
 #define CHILLDUINO_H
 
-#define CHILLDUINO_VERSION "0.2.0"
+#define CHILLDUINO_VERSION "0.3.0"
 
+template <typename Serial>
 class Chillduino {
+private:
+  static Serial* _serial;
+
 public:
-  static void setup(void);
-  static void loop(void);
+  static void setup(Serial* serial) {
+    _serial = serial;
+    _serial->begin(9600);
+  }
+
+  static void loop(void) {
+
+  }
 };
+
+template <typename Serial>
+Serial* Chillduino<Serial>::_serial = 0;
 
 #endif /* CHILLDUINO_H */
