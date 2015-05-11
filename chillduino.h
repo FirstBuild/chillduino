@@ -24,7 +24,7 @@
 #ifndef CHILLDUINO_H
 #define CHILLDUINO_H
 
-#define CHILLDUINO_VERSION "0.2.0"
+#define CHILLDUINO_VERSION "0.3.0"
 
 template <typename Serial>
 class Chillduino {
