@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
 sed -i '' 's/\(#define CHILLDUINO_VERSION\).*/\1 "'$1'"/' chillduino.h
+sed -i '' 's/version-.*-blue.svg/version-'$1'-blue.svg/g' README.md
