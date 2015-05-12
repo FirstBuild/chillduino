@@ -27,7 +27,7 @@
 #include <math.h>
 #include "application.h"
 
-#define CHILLDUINO_VERSION "0.4.0"
+#define CHILLDUINO_VERSION "0.4.1"
 
 template <typename Api, void (Api::*setTemperature)(float)>
 class Thermistor {
@@ -38,8 +38,8 @@ class Thermistor {
     static const unsigned long R2 = 10000;
     static const unsigned long V = 5;
     static const unsigned long T0 = 25;
-    static const unsigned long SAMPLES_PER_AVERAGE = 10;
     static const unsigned long SAMPLE_FREQUENCY = 100;
+    static const int SAMPLES_PER_AVERAGE = 10;
 
   private:
     Api *_api;
