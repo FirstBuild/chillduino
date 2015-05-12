@@ -50,6 +50,11 @@ class Delegate {
       return (_function == 0);
     }
 
+    template <void (*function)(void)>
+    static Delegate create(void) {
+      return Delegate(0, dropped<function>);
+    }
+
     template <void (*function)(void *)>
     static Delegate create(void *instance) {
       return Delegate(instance, function);
@@ -66,6 +71,11 @@ class Delegate {
     }
 
   private:
+    template <void (*function)(void)>
+    static void dropped(void *) {
+      function();
+    }
+
     template <typename T, void (T::*function)(void)>
     static void method(void *instance) {
       T *t = (T *) instance;
@@ -137,6 +147,12 @@ class Application {
       }
 
       return -1;
+    }
+
+    template <void (*function)(void)>
+    static int setTimeout(Timer::Ticks ticks) {
+      Delegate delegate = Delegate::create<function>();
+      return setTimeout(ticks, delegate);
     }
 
     template <void (*function)(void *)>
