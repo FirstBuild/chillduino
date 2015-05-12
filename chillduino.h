@@ -27,7 +27,7 @@
 #include <math.h>
 #include "application.h"
 
-#define CHILLDUINO_VERSION "0.3.0"
+#define CHILLDUINO_VERSION "0.4.0"
 
 template <typename Api, void (Api::*setTemperature)(float)>
 class Thermistor {
