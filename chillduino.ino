@@ -23,10 +23,50 @@
 
 #include "chillduino.h"
 
+#define FRESH_FOOD_THERMISTOR A0
+
+class Configuration {
+  public:
+    Configuration(void) { }
+
+    int getFreshFoodThermistorReading(void) {
+      int value = analogRead(FRESH_FOOD_THERMISTOR);
+      
+      Serial.print("fresh food reading: ");
+      Serial.println(value);
+      
+      return value;
+    }
+    
+    void setFreshFoodTemperature(float celsius) {
+      Serial.print("fresh food temperature: ");
+      Serial.println(celsius);
+    }
+};
+
+SIGNAL(TIMER0_COMPA_vect) {
+  Application::tick();
+}
+
+void setInterrupt(void) {
+  OCR0A = 0xAF;
+  TIMSK0 |= _BV(OCIE0A);
+}
+
+void clearInterrupt(void) {
+  TIMSK0 &= ~_BV(OCIE0A);
+}
+
+Configuration configuration;
+Chillduino<Configuration> chillduino(configuration);
+
 void setup(void) {
-  Chillduino::setup();
+  Serial.begin(9600);
+  setInterrupt();
+
+  chillduino.setup();
 }
 
 void loop(void) {
-  Chillduino::loop();
+  Application::loop();
 }
