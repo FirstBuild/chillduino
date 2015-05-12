@@ -27,7 +27,7 @@
 #include "application.h"
 #include "freshfood.h"
 
-#define CHILLDUINO_VERSION "0.5.0"
+#define CHILLDUINO_VERSION "0.5.1"
 
 template <typename X>
 class Chillduino {

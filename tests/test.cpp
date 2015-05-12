@@ -34,7 +34,7 @@ class Expect {
     Expect(void) :
       _actual() { }
 
-    ~Expect(void) {
+    virtual ~Expect(void) {
       assert(_actual == expected);
     }
 
