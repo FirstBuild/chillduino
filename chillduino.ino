@@ -27,20 +27,24 @@
 
 class Configuration {
   public:
-    Configuration(void) { }
+    static const unsigned long FRESH_FOOD_THERMISTOR_B = 3980;
+    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_RESISTANCE = 5000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_1_RESISTANCE = 15000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_2_RESISTANCE = 10000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_VOLTAGE = 5;
+    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_TEMPERATURE = 25;
 
-    int getFreshFoodThermistorReading(void) {
-      int value = analogRead(FRESH_FOOD_THERMISTOR);
-      
-      Serial.print("fresh food reading: ");
-      Serial.println(value);
-      
-      return value;
+    static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
+    static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
+    
+    static int getFreshFoodThermistorReading(void) {
+      return analogRead(FRESH_FOOD_THERMISTOR);
     }
     
-    void setFreshFoodTemperature(float celsius) {
+    static void setFreshFoodTemperature(float celsius) {
       Serial.print("fresh food temperature: ");
-      Serial.println(celsius);
+      Serial.print(celsius);
+      Serial.println(" *C");
     }
 };
 
@@ -58,13 +62,12 @@ void clearInterrupt(void) {
 }
 
 Configuration configuration;
-Chillduino<Configuration> chillduino(configuration);
 
 void setup(void) {
   Serial.begin(9600);
   setInterrupt();
 
-  chillduino.setup();
+  Chillduino<Configuration>::setup();
 }
 
 void loop(void) {

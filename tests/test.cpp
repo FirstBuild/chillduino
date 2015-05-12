@@ -21,146 +21,89 @@
  *
  */
 
-#include "chillduino.h"
+#include <chillduino.h>
+#include <iostream>
 #include <assert.h>
 
-class ShouldBeAbleToSetTimer {
+template <typename T, T expected>
+class Expect {
   private:
-    unsigned int _value;
+    T _actual;
 
   public:
-    ShouldBeAbleToSetTimer(void) :
-      _value(0) { }
+    Expect(void) :
+      _actual() { }
 
-    unsigned int value(void) const {
-      return _value;
+    ~Expect(void) {
+      assert(_actual == expected);
     }
 
-    void withMemberFunction(void) {
-      _value++;
+    T operator()(void) const {
+      return _actual;
     }
 
-    static void withStaticFunction(void *instance) {
-      ShouldBeAbleToSetTimer *i = (ShouldBeAbleToSetTimer *) instance;
-      i->_value++;
-    }
-
-    static void withTypedFunction(ShouldBeAbleToSetTimer *instance) {
-      instance->_value++;
+    void operator()(const T& value) {
+      _actual = value;
     }
 };
 
-void shouldBeAbleToSetTimeoutWithStaticFunction(void) {
-  ShouldBeAbleToSetTimer s;
-  Application::setTimeout<ShouldBeAbleToSetTimer::withStaticFunction>(0, &s);
+template <int X>
+class WhenFreshFoodThermistorReads {
+  public:
+    static int getFreshFoodThermistorReading(void) {
+      return X;
+    }
+};
 
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 1);
-  Application::loop();
-  assert(s.value() == 1);
-}
+template <int X>
+class ShouldHaveFreshFoodTemperature {
+  public:
+    static Expect<int, X> setFreshFoodTemperature;
+};
 
-void shouldBeAbleToSetTimeoutWithTypedFunction(void) {
-  ShouldBeAbleToSetTimer s;
+template <int X>
+Expect<int, X> ShouldHaveFreshFoodTemperature<X>::setFreshFoodTemperature;
 
-  Application::setTimeout<ShouldBeAbleToSetTimer,
-    ShouldBeAbleToSetTimer::withTypedFunction>(1, &s);
+class ShouldSampleFreshFood :
+  public WhenFreshFoodThermistorReads<512>,
+  public ShouldHaveFreshFoodTemperature<25> {
 
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 0);
-  Application::tick();
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 1);
-  Application::loop();
-  assert(s.value() == 1);
-}
+  public:
+    static const unsigned long FRESH_FOOD_THERMISTOR_B = 3980;
+    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_RESISTANCE = 5000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_1_RESISTANCE = 15000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_2_RESISTANCE = 10000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_VOLTAGE = 5;
+    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_TEMPERATURE = 25;
 
-void shouldBeAbleToSetTimeoutWithMemberFunction(void) {
-  ShouldBeAbleToSetTimer s;
+    static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
+    static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
+};
 
-  Application::setTimeout<ShouldBeAbleToSetTimer,
-    &ShouldBeAbleToSetTimer::withMemberFunction>(2, &s);
-
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 0);
-  Application::tick(5);
-  assert(s.value() == 0);
-  Application::loop();
-  assert(s.value() == 1);
-  Application::loop();
-  assert(s.value() == 1);
-}
+class Time {
+  public:
+    static void elapse(unsigned long ticks) {
+      while (ticks--) {
+        Application::tick();
+        Application::loop();
+      }
+    }
+};
 
 class ShouldReturnNegativeId {
   public:
-    static void whenTimersAreExhausted(void *) { }
+    static void whenAllTimersAreUsed(void) {
+      while (Application::setTimeout<ShouldReturnNegativeId::dummy>(0) >= 0);
+      Application::loop();
+    }
+
+    static void dummy(void) { }
 };
-
-void shouldReturnNegativeIdWhenTimersAreExhausted(void) {
-  int i;
-  ShouldReturnNegativeId s;
-
-  do {
-    i = Application::setTimeout<
-      ShouldReturnNegativeId::whenTimersAreExhausted>(0, &s);
-  }
-  while (i >= 0);
-
-  Application::loop();
-}
-
-#include <iostream>
-
-class ShouldSampleTemperature {
-  private:
-    int _value;
-
-  public:
-    ShouldSampleTemperature(void) :
-      _value(0) { }
-
-    ~ShouldSampleTemperature(void) {
-      assert(_value == 25);
-    }
-
-    int getFreshFoodThermistorReading(void) {
-      return 512;
-    }
-
-    void setFreshFoodTemperature(float c) {
-      _value = (int) c;
-    }
-
-    bool complete(void) const {
-      return _value != 0;
-    }
-};
-
-void shouldSampleFreshFoodTemperature(void) {
-  ShouldSampleTemperature s;
-  Chillduino<ShouldSampleTemperature> chillduino(s);
-  chillduino.setup();
-
-  while (!s.complete()) {
-    Application::tick();
-    Application::loop();
-  }
-}
 
 int main(void) {
-  shouldBeAbleToSetTimeoutWithStaticFunction();
-  shouldBeAbleToSetTimeoutWithTypedFunction();
-  shouldBeAbleToSetTimeoutWithMemberFunction();
-  shouldReturnNegativeIdWhenTimersAreExhausted();
-  shouldSampleFreshFoodTemperature();
+  ShouldReturnNegativeId::whenAllTimersAreUsed();
+  Chillduino<ShouldSampleFreshFood>::setup();  
+  Time::elapse(1000);
 
   return 0;
 }
