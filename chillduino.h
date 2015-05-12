@@ -24,25 +24,102 @@
 #ifndef CHILLDUINO_H
 #define CHILLDUINO_H
 
+#include <math.h>
+#include "application.h"
+
 #define CHILLDUINO_VERSION "0.3.0"
 
-template <typename Serial>
-class Chillduino {
-private:
-  static Serial* _serial;
+template <typename Api, void (Api::*setTemperature)(float)>
+class Thermistor {
+  public:
+    static const unsigned long B = 3980;
+    static const unsigned long R0 = 5000;
+    static const unsigned long R1 = 15000;
+    static const unsigned long R2 = 10000;
+    static const unsigned long V = 5;
+    static const unsigned long T0 = 25;
+    static const unsigned long SAMPLES_PER_AVERAGE = 10;
+    static const unsigned long SAMPLE_FREQUENCY = 100;
 
-public:
-  static void setup(Serial* serial) {
-    _serial = serial;
-    _serial->begin(9600);
-  }
+  private:
+    Api *_api;
+    int _samples[SAMPLES_PER_AVERAGE];
+    int _sampleCount;
 
-  static void loop(void) {
+  public:
+    Thermistor() :
+      _api(0),
+      _samples(),
+      _sampleCount(0) { }
+    
+    Thermistor(Api& api) :
+      _api(&api),
+      _samples(),
+      _sampleCount(0) { }
 
-  }
+    void sample(void) {
+      _samples[_sampleCount++] = _api->getFreshFoodThermistorReading();
+      
+      if (_sampleCount == SAMPLES_PER_AVERAGE) {
+        float c = celsius();
+        (_api->*setTemperature)(c);
+        _sampleCount = 0;
+      }
+
+      Application::setTimeout<Thermistor,
+        &Thermistor::sample>(SAMPLE_FREQUENCY, this);
+    }
+
+    int sample(void) const {
+      long total = 0;
+      
+      for (int i = 0; i < _sampleCount; i++) {
+        total += _samples[i];
+      }
+      
+      return total / _sampleCount;
+    }
+    
+    float voltage(void) const {
+      return V * sample() / 1023.0;
+    }
+
+    float resistance(void) const {
+      float v = voltage();
+      return (V * R1 - v * (R1 + R2)) / v;
+    }
+
+    float kelvin(void) const {
+      return 1 / (log(resistance() / R0) / B + (1 / (to_k(T0))));
+    }
+
+    float celsius(void) const {
+      return to_c(kelvin());
+    }
+
+    static float to_k(float c) {
+      return c + 273.15;
+    }
+
+    static float to_c(float k) {
+      return k - 273.15;
+    }
 };
 
-template <typename Serial>
-Serial* Chillduino<Serial>::_serial = 0;
+template <typename Api>
+class Chillduino {
+  private:
+    Api& _api;
+    Thermistor<Api, &Api::setFreshFoodTemperature> _freshFood;
+
+  public:
+    Chillduino(Api& api) :
+      _api(api),
+      _freshFood(api) { }
+  
+    void setup(void) {
+      _freshFood.sample();
+    }
+};
 
 #endif /* CHILLDUINO_H */

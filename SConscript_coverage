@@ -2,6 +2,9 @@ Import([ 'build' ])
 
 env = Environment()
 env.Append(CPPPATH='.')
+env.Append(CCFLAGS='-ansi')
+env.Append(CCFLAGS='-pedantic')
+env.Append(CCFLAGS='-Weffc++')
 env.Append(CCFLAGS='-Wall')
 env.Append(CCFLAGS='-Werror')
 env.Append(CCFLAGS='-Wextra')
@@ -12,10 +15,10 @@ env.Append(CCFLAGS='-fno-exceptions')
 env.Append(CCFLAGS='-fno-rtti')
 env.Append(LINKFLAGS='--coverage')
 
-env.Clean('test', 'test.gcno')
-env.Clean('test', 'test.gcda')
+env.Clean('test', 'tests/test.gcno')
+env.Clean('test', 'tests/test.gcda')
 
-program = env.Program('test', 'test.cpp')
+program = env.Program('test', 'tests/test.cpp')
 
 env.Default(program)
 env.Alias('test', program, program[0].abspath)
