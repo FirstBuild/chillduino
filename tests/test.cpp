@@ -50,6 +50,9 @@ class Expect {
 template <int X>
 class WhenFreshFoodThermistorReads {
   public:
+    WhenFreshFoodThermistorReads(void) { }
+    virtual ~WhenFreshFoodThermistorReads(void) { }
+
     static int getFreshFoodThermistorReading(void) {
       return X;
     }
@@ -58,6 +61,9 @@ class WhenFreshFoodThermistorReads {
 template <int X>
 class ShouldHaveFreshFoodTemperature {
   public:
+    ShouldHaveFreshFoodTemperature(void) { }
+    virtual ~ShouldHaveFreshFoodTemperature(void) { }
+
     static Expect<int, X> setFreshFoodTemperature;
 };
 
