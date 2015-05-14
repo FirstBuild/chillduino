@@ -28,7 +28,7 @@
 #include "compressor.h"
 #include "freshfood.h"
 
-#define CHILLDUINO_VERSION "0.5.2"
+#define CHILLDUINO_VERSION "0.6.0"
 
 template <typename X>
 class Chillduino {
