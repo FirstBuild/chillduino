@@ -21,37 +21,49 @@
  *
  */
 
-#ifndef CHILLDUINO_H
-#define CHILLDUINO_H
+#ifndef COMPRESSOR_H
+#define COMPRESSOR_H
 
 #include "application.h"
-#include "compressor.h"
-#include "freshfood.h"
 
-#define CHILLDUINO_VERSION "0.6.0"
-
-template <typename X>
-class Chillduino {
+template <typename X, typename C>
+class Compressor {
   private:
-    typedef Chillduino<X> C;
+    static const int RATE_LIMIT = X::COMPRESSOR_RATE_LIMIT;
+    static const unsigned long SAMPLE_FREQUENCY = X::COMPRESSOR_SAMPLE_FREQUENCY;
+
+  private:
+    static bool _desired;
 
   public:
     static void setup(void) {
-      Compressor<X, C>::setup();
-      FreshFood<X, C>::setup();
-      X::setup();
+      waitForChange();
     }
 
-    static void setFreshFoodTemperature(float celsius) {
-      X::setFreshFoodTemperature(celsius);
+    static void turnOn(void) {
+      _desired = true;
+    }
 
-      if (celsius > X::FRESH_FOOD_MAXIMUM_TEMPERATURE) {
-        Compressor<X, C>::turnOn();
+    static void turnOff(void) {
+      _desired = false;
+    }
+
+    static void waitForChange(void) {
+      static bool _actual = false;
+
+      if (_actual == _desired) {
+        Application::setTimeout<Compressor<X, C>::waitForChange>
+          (SAMPLE_FREQUENCY);
       }
-      else if (celsius < X::FRESH_FOOD_MINIMUM_TEMPERATURE) {
-        Compressor<X, C>::turnOff();
+      else {
+        _actual = _desired;
+        X::setCompressorIsRunning(_actual);
+        Application::setTimeout<Compressor<X, C>::waitForChange>(RATE_LIMIT);
       }
     }
 };
 
-#endif /* CHILLDUINO_H */
+template <typename X, typename C>
+bool Compressor<X, C>::_desired = false;
+
+#endif /* COMPRESSOR_H */

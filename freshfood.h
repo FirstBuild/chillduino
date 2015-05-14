@@ -41,7 +41,7 @@ class Kelvin {
     }
 };
 
-template <typename X>
+template <typename X, typename C>
 class FreshFood {
   private:
     static const unsigned long B  = X::FRESH_FOOD_THERMISTOR_B;
@@ -91,17 +91,17 @@ class FreshFood {
         total = 0;
         count = 0;
 
-        X::setFreshFoodTemperature(celsius);
+        C::setFreshFoodTemperature(celsius);
       }
 
-      Application::setTimeout<FreshFood<X>::sample>(SAMPLE_FREQUENCY);
+      Application::setTimeout<FreshFood<X, C>::sample>(SAMPLE_FREQUENCY);
     }
 };
 
-template <typename X>
-int FreshFood<X>::total = 0;
+template <typename X, typename C>
+int FreshFood<X, C>::total = 0;
 
-template <typename X>
-int FreshFood<X>::count = 0;
+template <typename X, typename C>
+int FreshFood<X, C>::count = 0;
 
 #endif /* FRESHFOOD_H */

@@ -36,6 +36,15 @@ class Configuration {
 
     static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
     static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
+    static const int FRESH_FOOD_MAXIMUM_TEMPERATURE = 3;
+    static const int FRESH_FOOD_MINIMUM_TEMPERATURE = 1;
+
+    static const unsigned long COMPRESSOR_RATE_LIMIT = 600000;
+    static const unsigned long COMPRESSOR_SAMPLE_FREQUENCY = 500;
+    
+    static void setup(void) {
+      
+    }
     
     static int getFreshFoodThermistorReading(void) {
       return analogRead(FRESH_FOOD_THERMISTOR);
@@ -45,6 +54,11 @@ class Configuration {
       Serial.print("fresh food temperature: ");
       Serial.print(celsius);
       Serial.println(" *C");
+    }
+    
+    static void setCompressorIsRunning(bool on) {
+      Serial.print("compressor is running: ");
+      Serial.println(on);
     }
 };
 
