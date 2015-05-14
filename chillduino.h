@@ -34,6 +34,7 @@ class Chillduino {
   public:
     static void setup(void) {
       FreshFood<X>::setup();
+      X::setup();
     }
 };
 
