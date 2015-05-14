@@ -59,6 +59,11 @@ class ThermistorUnitTest {
 
     static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
     static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
+    static const int FRESH_FOOD_MAXIMUM_TEMPERATURE = 3;
+    static const int FRESH_FOOD_MINIMUM_TEMPERATURE = 1;
+
+    static const unsigned long COMPRESSOR_RATE_LIMIT = 600000;
+    static const unsigned long COMPRESSOR_SAMPLE_FREQUENCY = 500;
 
   public:
     static int getFreshFoodThermistorReading(void) {
@@ -69,16 +74,72 @@ class ThermistorUnitTest {
       assert(C == (int) celsius);
     }
 
+    static void setCompressorIsRunning(bool running) {
+      (void) running;
+    }
+
     static void setup(void) {
       Time::elapse(FRESH_FOOD_SAMPLE_FREQUENCY * FRESH_FOOD_SAMPLES_PER_AVERAGE);
     }
 };
 
+class CompressorShouldBeRateLimited {
+  private:
+    static int reading;
+    static bool compressor;
+
+  public:
+    static const unsigned long FRESH_FOOD_THERMISTOR_B = 3980;
+    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_RESISTANCE = 5000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_1_RESISTANCE = 15000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_2_RESISTANCE = 10000;
+    static const unsigned long FRESH_FOOD_THERMISTOR_VOLTAGE = 5;
+    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_TEMPERATURE = 25;
+
+    static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
+    static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
+    static const int FRESH_FOOD_MAXIMUM_TEMPERATURE = 3;
+    static const int FRESH_FOOD_MINIMUM_TEMPERATURE = 1;
+
+    static const unsigned long COMPRESSOR_RATE_LIMIT = 600000;
+    static const unsigned long COMPRESSOR_SAMPLE_FREQUENCY = 500;
+
+  public:
+    static int getFreshFoodThermistorReading(void) {
+      return reading;
+    }
+
+    static void setFreshFoodTemperature(float celsius) {
+      (void) celsius;
+    }
+
+    static void setCompressorIsRunning(bool running) {
+      compressor = running;
+    }
+
+    static void setup(void) {
+      reading = 500;
+      Time::elapse(FRESH_FOOD_SAMPLE_FREQUENCY * FRESH_FOOD_SAMPLES_PER_AVERAGE);
+      assert(compressor);
+
+      reading = 0;
+      Time::elapse(FRESH_FOOD_SAMPLE_FREQUENCY * FRESH_FOOD_SAMPLES_PER_AVERAGE);
+      assert(compressor);
+
+      Time::elapse(COMPRESSOR_RATE_LIMIT);
+      assert(!compressor);
+    }
+};
+
+int CompressorShouldBeRateLimited::reading = 0;
+bool CompressorShouldBeRateLimited::compressor = false;
+
 int main(void) {
   ShouldReturnNegativeId::whenAllTimersAreUsed();
-  Chillduino<ThermistorUnitTest<0, -273> >::setup();  
-  Chillduino<ThermistorUnitTest<512, 25> >::setup();  
-  Chillduino<ThermistorUnitTest<613, 205> >::setup();  
+  Chillduino<ThermistorUnitTest<0, -273> >::setup();
+  Chillduino<ThermistorUnitTest<512, 25> >::setup();
+  Chillduino<ThermistorUnitTest<613, 205> >::setup();
+  Chillduino<CompressorShouldBeRateLimited>::setup();
 
   return 0;
 }
