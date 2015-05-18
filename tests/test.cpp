@@ -22,124 +22,131 @@
  */
 
 #include <chillduino.h>
-#include <iostream>
 #include <assert.h>
 
-class Time {
-  public:
-    static void elapse(unsigned long ticks) {
-      while (ticks--) {
-        Application::tick();
-        Application::loop();
-      }
-    }
-};
+#define TICKS_PER_SECOND   (1000)
+#define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
+#define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
 
-class ShouldReturnNegativeId {
-  public:
-    static void whenAllTimersAreUsed(void) {
-      while (Application::setTimeout<ShouldReturnNegativeId::empty>(0) >= 0);
-      Application::loop();
-    }
+Chillduino createChillduino(void) {
+  return Chillduino()
+    .setMinimumFreshFoodThermistorReading(370)
+    .setMaximumFreshFoodThermistorReading(392)
+    .setCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
+    .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
+    .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE);
+}
 
-    static void empty(void) {
-      
-    }
-};
+void shouldStartWithCompressorAndDefrostNotRunning(void) {
+  Chillduino chillduino = createChillduino();
 
-template <int T, int C>
-class ThermistorUnitTest {
-  public:
-    static const unsigned long FRESH_FOOD_THERMISTOR_B = 3980;
-    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_RESISTANCE = 5000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_1_RESISTANCE = 15000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_2_RESISTANCE = 10000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_VOLTAGE = 5;
-    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_TEMPERATURE = 25;
+  assert(!chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
+}
 
-    static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
-    static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
-    static const int FRESH_FOOD_MAXIMUM_TEMPERATURE = 3;
-    static const int FRESH_FOOD_MINIMUM_TEMPERATURE = 1;
+void shouldStartCompressorWhenFreshFoodIsWarm(void) {
+  Chillduino chillduino = createChillduino()
+    .setCurrentFreshFoodThermistorReading(400);
 
-    static const unsigned long COMPRESSOR_RATE_LIMIT = 600000;
-    static const unsigned long COMPRESSOR_SAMPLE_FREQUENCY = 500;
+  chillduino.elapse(TICKS_PER_SECOND);
+  assert(chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
+}
 
-  public:
-    static int getFreshFoodThermistorReading(void) {
-      return T;
-    }
+void shouldLeaveCompressorRunningUntilCooled(void) {
+  Chillduino chillduino = createChillduino();
 
-    static void setFreshFoodTemperature(float celsius) {
-      assert(C == (int) celsius);
-    }
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(TICKS_PER_HOUR);
 
-    static void setCompressorIsRunning(bool running) {
-      (void) running;
-    }
+  assert(chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
 
-    static void setup(void) {
-      Time::elapse(FRESH_FOOD_SAMPLE_FREQUENCY * FRESH_FOOD_SAMPLES_PER_AVERAGE);
-    }
-};
+  chillduino.setCurrentFreshFoodThermistorReading(360)
+    .elapse(TICKS_PER_SECOND);
 
-class CompressorShouldBeRateLimited {
-  private:
-    static int reading;
-    static bool compressor;
+  assert(!chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
+}
 
-  public:
-    static const unsigned long FRESH_FOOD_THERMISTOR_B = 3980;
-    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_RESISTANCE = 5000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_1_RESISTANCE = 15000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_2_RESISTANCE = 10000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_VOLTAGE = 5;
-    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_TEMPERATURE = 25;
+void shouldMaintainCompressorOnceStarted(void) {
+  Chillduino chillduino = createChillduino();
 
-    static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
-    static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
-    static const int FRESH_FOOD_MAXIMUM_TEMPERATURE = 3;
-    static const int FRESH_FOOD_MINIMUM_TEMPERATURE = 1;
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(TICKS_PER_SECOND);
 
-    static const unsigned long COMPRESSOR_RATE_LIMIT = 600000;
-    static const unsigned long COMPRESSOR_SAMPLE_FREQUENCY = 500;
+  assert(chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
 
-  public:
-    static int getFreshFoodThermistorReading(void) {
-      return reading;
-    }
+  chillduino.setCurrentFreshFoodThermistorReading(360)
+    .elapse(TICKS_PER_SECOND);
 
-    static void setFreshFoodTemperature(float celsius) {
-      (void) celsius;
-    }
+  assert(chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
+}
 
-    static void setCompressorIsRunning(bool running) {
-      compressor = running;
-    }
+void shouldMaintainCompressorOnceStopped(void) {
+  Chillduino chillduino = createChillduino();
 
-    static void setup(void) {
-      reading = 500;
-      Time::elapse(FRESH_FOOD_SAMPLE_FREQUENCY * FRESH_FOOD_SAMPLES_PER_AVERAGE);
-      assert(compressor);
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(TICKS_PER_HOUR);
 
-      reading = 0;
-      Time::elapse(FRESH_FOOD_SAMPLE_FREQUENCY * FRESH_FOOD_SAMPLES_PER_AVERAGE);
-      assert(compressor);
+  assert(chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
 
-      Time::elapse(COMPRESSOR_RATE_LIMIT);
-      assert(!compressor);
-    }
-};
+  chillduino.setCurrentFreshFoodThermistorReading(360)
+    .elapse(TICKS_PER_SECOND);
 
-int CompressorShouldBeRateLimited::reading = 0;
-bool CompressorShouldBeRateLimited::compressor = false;
+  assert(!chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
+
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(TICKS_PER_SECOND);
+
+  assert(!chillduino.isCompressorRunning());
+  assert(!chillduino.isDefrostRunning());
+}
+
+void shouldDefrostAfterAccumulatingCompressorRuntime(void) {
+  Chillduino chillduino = createChillduino();
+
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(2 * TICKS_PER_HOUR + TICKS_PER_MINUTE);
+
+  assert(chillduino.isDefrostRunning());
+}
+
+void shouldStopDefrostingWhenComplete(void) {
+  Chillduino chillduino = createChillduino();
+
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(3 * TICKS_PER_HOUR);
+
+  assert(!chillduino.isDefrostRunning());
+  assert(chillduino.isCompressorRunning());
+}
+
+void shouldSignalWhenAChangeOccurs(void) {
+  Chillduino chillduino = createChillduino();
+
+  assert(!chillduino.isChanged());
+
+  chillduino.setCurrentFreshFoodThermistorReading(400);
+  chillduino.tick();
+  chillduino.loop();
+
+  assert(chillduino.isChanged());
+}
 
 int main(void) {
-  ShouldReturnNegativeId::whenAllTimersAreUsed();
-  Chillduino<ThermistorUnitTest<0, -273> >::setup();
-  Chillduino<ThermistorUnitTest<512, 25> >::setup();
-  Chillduino<ThermistorUnitTest<613, 205> >::setup();
-  Chillduino<CompressorShouldBeRateLimited>::setup();
+  shouldStartWithCompressorAndDefrostNotRunning();
+  shouldStartCompressorWhenFreshFoodIsWarm();
+  shouldLeaveCompressorRunningUntilCooled();
+  shouldMaintainCompressorOnceStarted();
+  shouldMaintainCompressorOnceStopped();
+  shouldDefrostAfterAccumulatingCompressorRuntime();
+  shouldStopDefrostingWhenComplete();
+  shouldSignalWhenAChangeOccurs();
 
   return 0;
 }
