@@ -23,47 +23,14 @@
 
 #include "chillduino.h"
 
-#define FRESH_FOOD_THERMISTOR A0
+#define TICKS_PER_SECOND   ((unsigned long) 1000)
+#define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
+#define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
 
-class Configuration {
-  public:
-    static const unsigned long FRESH_FOOD_THERMISTOR_B = 3980;
-    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_RESISTANCE = 5000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_1_RESISTANCE = 15000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_2_RESISTANCE = 10000;
-    static const unsigned long FRESH_FOOD_THERMISTOR_VOLTAGE = 5;
-    static const unsigned long FRESH_FOOD_THERMISTOR_ROOM_TEMPERATURE = 25;
-
-    static const int FRESH_FOOD_SAMPLE_FREQUENCY = 100;
-    static const int FRESH_FOOD_SAMPLES_PER_AVERAGE = 10;
-    static const int FRESH_FOOD_MAXIMUM_TEMPERATURE = 3;
-    static const int FRESH_FOOD_MINIMUM_TEMPERATURE = 1;
-
-    static const unsigned long COMPRESSOR_RATE_LIMIT = 600000;
-    static const unsigned long COMPRESSOR_SAMPLE_FREQUENCY = 500;
-    
-    static void setup(void) {
-      
-    }
-    
-    static int getFreshFoodThermistorReading(void) {
-      return analogRead(FRESH_FOOD_THERMISTOR);
-    }
-    
-    static void setFreshFoodTemperature(float celsius) {
-      Serial.print("fresh food temperature: ");
-      Serial.print(celsius);
-      Serial.println(" *C");
-    }
-    
-    static void setCompressorIsRunning(bool on) {
-      Serial.print("compressor is running: ");
-      Serial.println(on);
-    }
-};
+Chillduino chillduino;
 
 SIGNAL(TIMER0_COMPA_vect) {
-  Application::tick();
+  chillduino.tick();
 }
 
 void setInterrupt(void) {
@@ -75,15 +42,27 @@ void clearInterrupt(void) {
   TIMSK0 &= ~_BV(OCIE0A);
 }
 
-Configuration configuration;
-
 void setup(void) {
+  chillduino
+    .setMinimumFreshFoodThermistorReading(370)
+    .setMaximumFreshFoodThermistorReading(392)
+    .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
+    .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
+    .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE);
+  
   Serial.begin(9600);
   setInterrupt();
-
-  Chillduino<Configuration>::setup();
 }
 
 void loop(void) {
-  Application::loop();
+  chillduino.setCurrentFreshFoodThermistorReading(analogRead(A0));
+  chillduino.loop();
+
+  if (chillduino.isChanged()) {
+    Serial.println(chillduino.isCompressorRunning()
+      ? "Compressor is running" : "Compressor is not running");
+
+    Serial.println(chillduino.isDefrostRunning()
+      ? "Defrost is running" : "Defrost is not running");
+  }
 }
