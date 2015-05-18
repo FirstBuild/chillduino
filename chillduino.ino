@@ -21,12 +21,20 @@
  *
  */
 
+#include <Adafruit_NeoPixel.h>
 #include "chillduino.h"
 
 #define DOOR_SWITCH    13
 #define DEFROST_SWITCH 12
 #define THERMISTOR     A0
 #define LEDS           A4
+#define LED_COUNT      60
+#define LED_OFF_R      0
+#define LED_OFF_G      0
+#define LED_OFF_B      0
+#define LED_ON_R       255
+#define LED_ON_G       255
+#define LED_ON_B       255
 #define OFF
 #define COLD           45
 #define COLDER         37
@@ -37,6 +45,7 @@
 #define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
 
 Chillduino chillduino;
+Adafruit_NeoPixel pixels(LED_COUNT, LEDS, NEO_GRB + NEO_KHZ800);
 
 SIGNAL(TIMER0_COMPA_vect) {
   chillduino.tick();
@@ -51,6 +60,14 @@ void clearInterrupt(void) {
   TIMSK0 &= ~_BV(OCIE0A);
 }
 
+void setLedColor(int r, int g, int b) {
+  for (int i = 0; i < LED_COUNT; i++) {
+    pixels.setPixelColor(i, pixels.Color(r, g, b));
+  }
+  
+  pixels.show();
+}
+
 void setup(void) {
   pinMode(DOOR_SWITCH, INPUT);
   pinMode(DEFROST_SWITCH, INPUT);
@@ -62,6 +79,9 @@ void setup(void) {
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
     .setMinimumTicksForDoorClose(100);
+  
+  pixels.begin();
+  pixels.show();
   
   Serial.begin(9600);
   setInterrupt();
@@ -81,5 +101,12 @@ void loop(void) {
 
     Serial.println(chillduino.isDefrostRunning()
       ? "Defrost is running" : "Defrost is not running");
+    
+    if (chillduino.isDoorOpen()) {
+      setLedColor(LED_ON_R, LED_ON_G, LED_ON_B);
+    }
+    else {
+      setLedColor(LED_OFF_R, LED_OFF_G, LED_OFF_B);
+    }
   }
 }
