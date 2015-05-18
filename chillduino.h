@@ -24,33 +24,169 @@
 #ifndef CHILLDUINO_H
 #define CHILLDUINO_H
 
-#include "application.h"
-#include "compressor.h"
-#include "freshfood.h"
-
-#define CHILLDUINO_VERSION "0.6.0"
-
-template <typename X>
 class Chillduino {
   private:
-    typedef Chillduino<X> C;
+    int _minimumFreshFoodThermistorReading;
+    int _currentFreshFoodThermistorReading;
+    int _maximumFreshFoodThermistorReading;
+    unsigned long _compressorTicksPerDefrost;
+    unsigned long _remainingCompressorTicksUntilDefrost;
+    unsigned long _defrostDurationInTicks;
+    unsigned long _remainingTicksWhileDefrosting;
+    unsigned long _remainingTicksForCompressorChange;
+    unsigned long _minimumTicksForCompressorChange;
+    bool _isCompressorRunning;
+    bool _isDefrostRunning;
+    bool _isChanged;
 
   public:
-    static void setup(void) {
-      Compressor<X, C>::setup();
-      FreshFood<X, C>::setup();
-      X::setup();
+    Chillduino(void) :
+      _minimumFreshFoodThermistorReading(0),
+      _currentFreshFoodThermistorReading(0),
+      _maximumFreshFoodThermistorReading(0),
+      _compressorTicksPerDefrost(0),
+      _remainingCompressorTicksUntilDefrost(0),
+      _defrostDurationInTicks(0),
+      _remainingTicksWhileDefrosting(0),
+      _remainingTicksForCompressorChange(0),
+      _minimumTicksForCompressorChange(0),
+      _isCompressorRunning(false),
+      _isDefrostRunning(false),
+      _isChanged(false) { }
+
+    Chillduino& setMinimumFreshFoodThermistorReading(int reading) {
+      _minimumFreshFoodThermistorReading = reading;
+      return *this;
     }
 
-    static void setFreshFoodTemperature(float celsius) {
-      X::setFreshFoodTemperature(celsius);
+    Chillduino& setCurrentFreshFoodThermistorReading(int reading) {
+      _currentFreshFoodThermistorReading = reading;
+      return *this;
+    }
 
-      if (celsius > X::FRESH_FOOD_MAXIMUM_TEMPERATURE) {
-        Compressor<X, C>::turnOn();
+    Chillduino& setMaximumFreshFoodThermistorReading(int reading) {
+      _maximumFreshFoodThermistorReading = reading;
+      return *this;
+    }
+
+    Chillduino& setCompressorTicksPerDefrost(unsigned long ticks) {
+      _compressorTicksPerDefrost = ticks;
+      _remainingCompressorTicksUntilDefrost = ticks;
+      return *this;
+    }
+
+    Chillduino& setDefrostDurationInTicks(unsigned long ticks) {
+      _defrostDurationInTicks = ticks;
+      return *this;
+    }
+
+    Chillduino& setMinimumTicksForCompressorChange(unsigned long ticks) {
+      _minimumTicksForCompressorChange = ticks;
+      return *this;
+    }
+
+    bool isCompressorRunning(void) const {
+      return _isCompressorRunning;
+    }
+
+    bool isDefrostRunning(void) const {
+      return _isDefrostRunning;
+    }
+
+    bool isChanged(void) const {
+      return _isChanged;
+    }
+
+    void tick(void) {
+      if (_remainingTicksForCompressorChange > 0) {
+        _remainingTicksForCompressorChange--;
       }
-      else if (celsius < X::FRESH_FOOD_MINIMUM_TEMPERATURE) {
-        Compressor<X, C>::turnOff();
+
+      if (_isCompressorRunning) {
+        if (_remainingCompressorTicksUntilDefrost > 0) {
+          _remainingCompressorTicksUntilDefrost--;
+        }
       }
+
+      if (_remainingTicksWhileDefrosting > 0) {
+        _remainingTicksWhileDefrosting--;
+      }
+    }
+
+    void loop(void) {
+      _isChanged = false;
+
+      if (isCompressorReadyForChange()) {
+        if (isDefrostRunning()) {
+          if (isDefrostComplete()) {
+            stopRunningDefrost();
+          }
+        }
+        else if (isCompressorRunning() && isReadyForDefrost()) {
+          stopRunningCompressor();
+          startRunningDefrost();
+        }
+        else if (isFreshFoodWarm() && !isCompressorRunning()) {
+          startRunningCompressor();
+        }
+        else if (isFreshFoodCold() && isCompressorRunning()) {
+          stopRunningCompressor();
+        }
+      }
+    }
+
+    void elapse(unsigned long ticks) {
+      while (ticks--) {
+        tick();
+        loop();
+      }
+    }
+
+  private:
+    bool isFreshFoodWarm(void) const {
+      return _currentFreshFoodThermistorReading
+        > _maximumFreshFoodThermistorReading;
+    }
+
+    bool isFreshFoodCold(void) const {
+      return _currentFreshFoodThermistorReading
+        < _minimumFreshFoodThermistorReading;
+    }
+
+    bool isCompressorReadyForChange(void) const {
+      return _remainingTicksForCompressorChange == 0;
+    }
+
+    bool isDefrostComplete(void) const {
+      return _remainingTicksWhileDefrosting == 0;
+    }
+
+    bool isReadyForDefrost(void) const {
+      return _remainingCompressorTicksUntilDefrost == 0;
+    }
+
+    void startRunningCompressor(void) {
+      _isChanged = true;
+      _isCompressorRunning = true;
+      _remainingTicksForCompressorChange = _minimumTicksForCompressorChange;
+    }
+
+    void stopRunningCompressor(void) {
+      _isChanged = true;
+      _isCompressorRunning = false;
+      _remainingTicksForCompressorChange = _minimumTicksForCompressorChange;
+    }
+
+    void startRunningDefrost(void) {
+      _isChanged = true;
+      _isDefrostRunning = true;
+      _remainingTicksWhileDefrosting = _defrostDurationInTicks;
+    }
+
+    void stopRunningDefrost(void) {
+      _isChanged = true;
+      _isDefrostRunning = false;
+      _remainingCompressorTicksUntilDefrost = _compressorTicksPerDefrost;
     }
 };
 
