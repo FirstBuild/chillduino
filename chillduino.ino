@@ -24,6 +24,8 @@
 #include <Adafruit_NeoPixel.h>
 #include "chillduino.h"
 
+#define COMPRESSOR     9
+#define DEFROST        10
 #define DOOR_SWITCH    13
 #define DEFROST_SWITCH 12
 #define THERMISTOR     A0
@@ -71,6 +73,8 @@ void setLedColor(int r, int g, int b) {
 void setup(void) {
   pinMode(DOOR_SWITCH, INPUT);
   pinMode(DEFROST_SWITCH, INPUT);
+  pinMode(COMPRESSOR, OUTPUT);
+  pinMode(DEFROST, OUTPUT);
   
   chillduino
     .setMinimumFreshFoodThermistorReading(370)
@@ -108,5 +112,8 @@ void loop(void) {
     else {
       setLedColor(LED_OFF_R, LED_OFF_G, LED_OFF_B);
     }
+    
+    digitalWrite(COMPRESSOR, chillduino.isCompressorRunning());
+    digitalWrite(DEFROST, chillduino.isDefrostRunning());
   }
 }
