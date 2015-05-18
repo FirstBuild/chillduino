@@ -28,7 +28,7 @@
 #define DEFROST_SWITCH 12
 #define THERMISTOR     A0
 #define LEDS           A4
-#define LED_COUNT      60
+#define LED_COUNT      10
 #define LED_OFF_R      0
 #define LED_OFF_G      0
 #define LED_OFF_B      0
