@@ -23,6 +23,15 @@
 
 #include "chillduino.h"
 
+#define DOOR_SWITCH    13
+#define DEFROST_SWITCH 12
+#define THERMISTOR     A0
+#define LEDS           A4
+#define OFF
+#define COLD           45
+#define COLDER         37
+#define COLDEST        31
+
 #define TICKS_PER_SECOND   ((unsigned long) 1000)
 #define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
 #define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
@@ -43,22 +52,30 @@ void clearInterrupt(void) {
 }
 
 void setup(void) {
+  pinMode(DOOR_SWITCH, INPUT);
+  pinMode(DEFROST_SWITCH, INPUT);
+  
   chillduino
     .setMinimumFreshFoodThermistorReading(370)
     .setMaximumFreshFoodThermistorReading(392)
     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
-    .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE);
+    .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
+    .setMinimumTicksForDoorClose(100);
   
   Serial.begin(9600);
   setInterrupt();
 }
 
 void loop(void) {
-  chillduino.setCurrentFreshFoodThermistorReading(analogRead(A0));
+  chillduino.setCurrentFreshFoodThermistorReading(analogRead(THERMISTOR));
+  chillduino.setDoorSwitchReading(digitalRead(DOOR_SWITCH));
   chillduino.loop();
 
   if (chillduino.isChanged()) {
+    Serial.println(chillduino.isDoorOpen()
+      ? "Door is open" : "Door is closed");
+
     Serial.println(chillduino.isCompressorRunning()
       ? "Compressor is running" : "Compressor is not running");
 

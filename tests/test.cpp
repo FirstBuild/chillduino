@@ -24,7 +24,7 @@
 #include <chillduino.h>
 #include <assert.h>
 
-#define TICKS_PER_SECOND   (1000)
+#define TICKS_PER_SECOND   ((unsigned long) 1000)
 #define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
 #define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
 
@@ -34,7 +34,8 @@ Chillduino createChillduino(void) {
     .setMaximumFreshFoodThermistorReading(392)
     .setCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
-    .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE);
+    .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
+    .setMinimumTicksForDoorClose(100);
 }
 
 void shouldStartWithCompressorAndDefrostNotRunning(void) {
@@ -138,6 +139,23 @@ void shouldSignalWhenAChangeOccurs(void) {
   assert(chillduino.isChanged());
 }
 
+void shouldSampleTheDoorSwitch(void) {
+  Chillduino chillduino = createChillduino();
+  assert(!chillduino.isDoorOpen());
+
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  assert(chillduino.isDoorOpen());
+
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+  assert(!chillduino.isDoorOpen());
+}
+
 int main(void) {
   shouldStartWithCompressorAndDefrostNotRunning();
   shouldStartCompressorWhenFreshFoodIsWarm();
@@ -147,6 +165,7 @@ int main(void) {
   shouldDefrostAfterAccumulatingCompressorRuntime();
   shouldStopDefrostingWhenComplete();
   shouldSignalWhenAChangeOccurs();
+  shouldSampleTheDoorSwitch();
 
   return 0;
 }
