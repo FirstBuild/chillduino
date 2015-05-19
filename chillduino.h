@@ -29,14 +29,19 @@ class Chillduino {
     int _minimumFreshFoodThermistorReading;
     int _currentFreshFoodThermistorReading;
     int _maximumFreshFoodThermistorReading;
+    int _previousDoorSwitchReading;
+    int _currentDoorSwitchReading;
     unsigned long _compressorTicksPerDefrost;
     unsigned long _remainingCompressorTicksUntilDefrost;
     unsigned long _defrostDurationInTicks;
     unsigned long _remainingTicksWhileDefrosting;
     unsigned long _remainingTicksForCompressorChange;
     unsigned long _minimumTicksForCompressorChange;
+    unsigned long _remainingTicksForDoorClose;
+    unsigned long _minimumTicksForDoorClose;
     bool _isCompressorRunning;
     bool _isDefrostRunning;
+    bool _isDoorOpen;
     bool _isChanged;
 
   public:
@@ -44,14 +49,19 @@ class Chillduino {
       _minimumFreshFoodThermistorReading(0),
       _currentFreshFoodThermistorReading(0),
       _maximumFreshFoodThermistorReading(0),
+      _previousDoorSwitchReading(0),
+      _currentDoorSwitchReading(0),
       _compressorTicksPerDefrost(0),
       _remainingCompressorTicksUntilDefrost(0),
       _defrostDurationInTicks(0),
       _remainingTicksWhileDefrosting(0),
       _remainingTicksForCompressorChange(0),
       _minimumTicksForCompressorChange(0),
+      _remainingTicksForDoorClose(0),
+      _minimumTicksForDoorClose(0),
       _isCompressorRunning(false),
       _isDefrostRunning(false),
+      _isDoorOpen(false),
       _isChanged(false) { }
 
     Chillduino& setMinimumFreshFoodThermistorReading(int reading) {
@@ -85,12 +95,26 @@ class Chillduino {
       return *this;
     }
 
+    Chillduino& setMinimumTicksForDoorClose(unsigned long ticks) {
+      _minimumTicksForDoorClose = ticks;
+      return *this;
+    }
+
+    Chillduino& setDoorSwitchReading(int reading) {
+      _currentDoorSwitchReading = reading;
+      return *this;
+    }
+
     bool isCompressorRunning(void) const {
       return _isCompressorRunning;
     }
 
     bool isDefrostRunning(void) const {
       return _isDefrostRunning;
+    }
+
+    bool isDoorOpen(void) const {
+      return _isDoorOpen;
     }
 
     bool isChanged(void) const {
@@ -110,6 +134,10 @@ class Chillduino {
 
       if (_remainingTicksWhileDefrosting > 0) {
         _remainingTicksWhileDefrosting--;
+      }
+
+      if (_remainingTicksForDoorClose > 0) {
+        _remainingTicksForDoorClose--;
       }
     }
 
@@ -132,6 +160,14 @@ class Chillduino {
         else if (isFreshFoodCold() && isCompressorRunning()) {
           stopRunningCompressor();
         }
+      }
+
+      if (isDoorSwitchChanged()) {
+        updatePreviousDoorSwitchReading();
+        resetDoorSwitchTicks();
+      }
+      else {
+        checkForDoorClose();
       }
     }
 
@@ -163,6 +199,30 @@ class Chillduino {
 
     bool isReadyForDefrost(void) const {
       return _remainingCompressorTicksUntilDefrost == 0;
+    }
+
+    bool isDoorSwitchChanged(void) const {
+      return _previousDoorSwitchReading != _currentDoorSwitchReading;
+    }
+
+    void updatePreviousDoorSwitchReading(void) {
+      _previousDoorSwitchReading = _currentDoorSwitchReading;
+    }
+
+    void resetDoorSwitchTicks(void) {
+      if (!_isDoorOpen) {
+        _isDoorOpen = true;
+        _isChanged = true;
+      }
+
+      _remainingTicksForDoorClose = _minimumTicksForDoorClose;
+    }
+
+    void checkForDoorClose(void) {
+      if (_isDoorOpen && _remainingTicksForDoorClose == 0) {
+        _isDoorOpen = false;
+        _isChanged = true;
+      }
     }
 
     void startRunningCompressor(void) {
