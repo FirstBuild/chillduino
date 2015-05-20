@@ -24,6 +24,8 @@
 #ifndef CHILLDUINO_H
 #define CHILLDUINO_H
 
+#define CHILLDUINO_VERSION "1.0.2"
+
 class Chillduino {
   private:
     int _minimumFreshFoodThermistorReading;
