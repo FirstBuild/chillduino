@@ -77,8 +77,8 @@ void setup(void) {
   pinMode(DEFROST, OUTPUT);
   
   chillduino
-    .setMinimumFreshFoodThermistorReading(286)
-    .setMaximumFreshFoodThermistorReading(331)
+    .setMinimumFreshFoodThermistorReading(243) //decrewsed set point
+    .setMaximumFreshFoodThermistorReading(350) //increased set point
     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
