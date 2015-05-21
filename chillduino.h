@@ -26,6 +26,12 @@
 
 #define CHILLDUINO_VERSION "1.0.2"
 
+#define CHILLDUINO_MODE_OFF     0
+#define CHILLDUINO_MODE_COLD    1
+#define CHILLDUINO_MODE_COLDER  2
+#define CHILLDUINO_MODE_COLDEST 3
+#define CHILLDUINO_MODE_COUNT   4
+
 class Chillduino {
   private:
     int _minimumFreshFoodThermistorReading;
@@ -33,6 +39,9 @@ class Chillduino {
     int _maximumFreshFoodThermistorReading;
     int _previousDoorSwitchReading;
     int _currentDoorSwitchReading;
+    int _previousModeSwitchReading;
+    int _currentModeSwitchReading;
+    int _mode;
     unsigned long _compressorTicksPerDefrost;
     unsigned long _remainingCompressorTicksUntilDefrost;
     unsigned long _defrostDurationInTicks;
@@ -53,6 +62,9 @@ class Chillduino {
       _maximumFreshFoodThermistorReading(0),
       _previousDoorSwitchReading(0),
       _currentDoorSwitchReading(0),
+      _previousModeSwitchReading(0),
+      _currentModeSwitchReading(0),
+      _mode(CHILLDUINO_MODE_COLDER),
       _compressorTicksPerDefrost(0),
       _remainingCompressorTicksUntilDefrost(0),
       _defrostDurationInTicks(0),
@@ -105,6 +117,20 @@ class Chillduino {
     Chillduino& setDoorSwitchReading(int reading) {
       _currentDoorSwitchReading = reading;
       return *this;
+    }
+
+    Chillduino& setModeSwitchReading(int reading) {
+      _currentModeSwitchReading = reading;
+      return *this;
+    }
+
+    Chillduino& setMode(int mode) {
+      _mode = mode;
+      return *this;
+    }
+
+    int getMode(void) const {
+      return _mode;
     }
 
     bool isCompressorRunning(void) const {
@@ -171,6 +197,14 @@ class Chillduino {
       else {
         checkForDoorClose();
       }
+
+      if (isModeSwitchChanged()) {
+        if (isModeSwitchPressed()) {
+          cycleToNextMode();
+        }
+
+        updatePreviousModeSwitchReading();
+      }
     }
 
     void elapse(unsigned long ticks) {
@@ -225,6 +259,24 @@ class Chillduino {
         _isDoorOpen = false;
         _isChanged = true;
       }
+    }
+
+    bool isModeSwitchChanged(void) const {
+      return _previousModeSwitchReading != _currentModeSwitchReading;
+    }
+
+    bool isModeSwitchPressed(void) const {
+      return (_previousModeSwitchReading == 0)
+        && (_currentModeSwitchReading == 1);
+    }
+
+    void updatePreviousModeSwitchReading(void) {
+      _previousModeSwitchReading = _currentModeSwitchReading;
+    }
+
+    void cycleToNextMode(void) {
+      _mode = (_mode + 1) % CHILLDUINO_MODE_COUNT;
+      _isChanged = true;
     }
 
     void startRunningCompressor(void) {

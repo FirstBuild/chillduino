@@ -24,23 +24,31 @@
 #include <Adafruit_NeoPixel.h>
 #include "chillduino.h"
 
-#define COMPRESSOR     9
-#define DEFROST        10
-#define DOOR_SWITCH    13
-#define DEFROST_SWITCH 12
-#define THERMISTOR     A0
-#define LEDS           A4
-#define LED_COUNT      10
-#define LED_OFF_R      0
-#define LED_OFF_G      0
-#define LED_OFF_B      0
-#define LED_ON_R       255
-#define LED_ON_G       255
-#define LED_ON_B       255
-#define OFF
-#define COLD           45
-#define COLDER         37
-#define COLDEST        31
+#define LED_MODE_COLDEST 4
+#define LED_MODE_COLDER  5
+#define LED_MODE_COLD    6
+#define LED_MODE_OFF     8
+#define COMPRESSOR       9
+#define DEFROST          10
+#define DEFROST_SWITCH   12
+#define DOOR_SWITCH      13
+#define MODE_SWITCH      SCK
+#define THERMISTOR       A0
+#define LEDS             A4
+#define LED_COUNT        10
+#define LED_OFF_R        0
+#define LED_OFF_G        0
+#define LED_OFF_B        0
+#define LED_ON_R         255
+#define LED_ON_G         255
+#define LED_ON_B         255
+
+#define THERMISTOR_MIN_COLD    243
+#define THERMISTOR_MAX_COLD    350
+#define THERMISTOR_MIN_COLDER  243
+#define THERMISTOR_MAX_COLDER  350
+#define THERMISTOR_MIN_COLDEST 243
+#define THERMISTOR_MAX_COLDEST 350
 
 #define TICKS_PER_SECOND   ((unsigned long) 1000)
 #define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
@@ -77,8 +85,9 @@ void setup(void) {
   pinMode(DEFROST, OUTPUT);
   
   chillduino
-    .setMinimumFreshFoodThermistorReading(243) //decrewsed set point
-    .setMaximumFreshFoodThermistorReading(350) //increased set point
+    .setMode(CHILLDUINO_MODE_COLDER)
+    .setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDER)
+    .setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLDER)
     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
@@ -94,6 +103,7 @@ void setup(void) {
 void loop(void) {
   chillduino.setCurrentFreshFoodThermistorReading(analogRead(THERMISTOR));
   chillduino.setDoorSwitchReading(digitalRead(DOOR_SWITCH));
+  chillduino.setModeSwitchReading(digitalRead(MODE_SWITCH));
   chillduino.loop();
 
   if (chillduino.isChanged()) {
@@ -112,6 +122,45 @@ void loop(void) {
     else {
       setLedColor(LED_OFF_R, LED_OFF_G, LED_OFF_B);
     }
+
+    switch (chillduino.getMode()) {
+      case CHILLDUINO_MODE_OFF:
+        digitalWrite(LED_MODE_OFF, 1);
+        digitalWrite(LED_MODE_COLD, 0);
+        digitalWrite(LED_MODE_COLDER, 0);
+        digitalWrite(LED_MODE_COLDEST, 0);
+        break;
+
+      case CHILLDUINO_MODE_COLD:
+        digitalWrite(LED_MODE_OFF, 0);
+        digitalWrite(LED_MODE_COLD, 1);
+        digitalWrite(LED_MODE_COLDER, 0);
+        digitalWrite(LED_MODE_COLDEST, 0);
+        chillduino.setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLD);
+        chillduino.setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLD);
+        break;
+
+      case CHILLDUINO_MODE_COLDER:
+        digitalWrite(LED_MODE_OFF, 0);
+        digitalWrite(LED_MODE_COLD, 0);
+        digitalWrite(LED_MODE_COLDER, 1);
+        digitalWrite(LED_MODE_COLDEST, 0);
+        chillduino.setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDER);
+        chillduino.setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLDER);
+        break;
+
+      case CHILLDUINO_MODE_COLDEST:
+        digitalWrite(LED_MODE_OFF, 0);
+        digitalWrite(LED_MODE_COLD, 0);
+        digitalWrite(LED_MODE_COLDER, 0);
+        digitalWrite(LED_MODE_COLDEST, 1);
+        chillduino.setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDEST);
+        chillduino.setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLDEST);
+        break;
+
+      default:
+        break;
+    };
     
     digitalWrite(COMPRESSOR, chillduino.isCompressorRunning());
     digitalWrite(DEFROST, chillduino.isDefrostRunning());
