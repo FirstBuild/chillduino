@@ -30,6 +30,7 @@
 
 Chillduino createChillduino(void) {
   return Chillduino()
+    .setMode(CHILLDUINO_MODE_COLDER)
     .setMinimumFreshFoodThermistorReading(370)
     .setMaximumFreshFoodThermistorReading(392)
     .setCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
@@ -156,6 +157,35 @@ void shouldSampleTheDoorSwitch(void) {
   assert(!chillduino.isDoorOpen());
 }
 
+void shouldSwitchModeWhenButtonIsPressed(void) {
+  Chillduino chillduino = createChillduino();
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLDER);
+
+  chillduino.setModeSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+  chillduino.setModeSwitchReading(0);
+  chillduino.elapse(TICKS_PER_SECOND);
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLDEST);
+
+  chillduino.setModeSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+  chillduino.setModeSwitchReading(0);
+  chillduino.elapse(TICKS_PER_SECOND);
+  assert(chillduino.getMode() == CHILLDUINO_MODE_OFF);
+
+  chillduino.setModeSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+  chillduino.setModeSwitchReading(0);
+  chillduino.elapse(TICKS_PER_SECOND);
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLD);
+
+  chillduino.setModeSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+  chillduino.setModeSwitchReading(0);
+  chillduino.elapse(TICKS_PER_SECOND);
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLDER);
+}
+
 int main(void) {
   shouldStartWithCompressorAndDefrostNotRunning();
   shouldStartCompressorWhenFreshFoodIsWarm();
@@ -166,6 +196,7 @@ int main(void) {
   shouldStopDefrostingWhenComplete();
   shouldSignalWhenAChangeOccurs();
   shouldSampleTheDoorSwitch();
+  shouldSwitchModeWhenButtonIsPressed();
 
   return 0;
 }
