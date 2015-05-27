@@ -36,7 +36,8 @@ Chillduino createChillduino(void) {
     .setCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
-    .setMinimumTicksForDoorClose(100);
+    .setMinimumTicksForDoorClose(100)
+    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
 }
 
 void shouldStartWithCompressorAndDefrostNotRunning(void) {
@@ -186,6 +187,29 @@ void shouldSwitchModeWhenButtonIsPressed(void) {
   assert(chillduino.getMode() == CHILLDUINO_MODE_COLDER);
 }
 
+void shouldToggleWiFiWhenButtonIsHeld(void) {
+  Chillduino chillduino = createChillduino();
+
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLDER);
+  assert(!chillduino.isWiFiToggled());
+
+  chillduino.setModeSwitchReading(1);
+  chillduino.elapse(5 * TICKS_PER_SECOND);
+  chillduino.setModeSwitchReading(0);
+  chillduino.elapse(TICKS_PER_SECOND);
+
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLDER);
+  assert(chillduino.isWiFiToggled());
+
+  chillduino.setModeSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+  chillduino.setModeSwitchReading(0);
+  chillduino.elapse(TICKS_PER_SECOND);
+
+  assert(chillduino.getMode() == CHILLDUINO_MODE_COLDEST);
+  assert(!chillduino.isWiFiToggled());
+}
+
 int main(void) {
   shouldStartWithCompressorAndDefrostNotRunning();
   shouldStartCompressorWhenFreshFoodIsWarm();
@@ -197,6 +221,7 @@ int main(void) {
   shouldSignalWhenAChangeOccurs();
   shouldSampleTheDoorSwitch();
   shouldSwitchModeWhenButtonIsPressed();
+  shouldToggleWiFiWhenButtonIsHeld();
 
   return 0;
 }
