@@ -97,9 +97,12 @@ class Chillduino {
     unsigned long _minimumTicksForCompressorChange;
     unsigned long _remainingTicksForDoorClose;
     unsigned long _minimumTicksForDoorClose;
+    unsigned long _remainingTicksForHeldModeSwitch;
+    unsigned long _minimumTicksForHeldModeSwitch;
     bool _isCompressorRunning;
     bool _isDefrostRunning;
     bool _isDoorOpen;
+    bool _isWiFiToggled;
     bool _isChanged;
 
   public:
@@ -120,7 +123,8 @@ class Chillduino {
      *     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
      *     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
      *     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
-     *     .setMinimumTicksForDoorClose(100);
+     *     .setMinimumTicksForDoorClose(100)
+     *     .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
      * }
      *
      * void loop(void) {
@@ -129,7 +133,6 @@ class Chillduino {
      *   chillduino.setModeSwitchReading(digitalRead(MODE_SWITCH));
      *   chillduino.loop();
      * }
-     *
      * ```
      *
      */
@@ -150,9 +153,12 @@ class Chillduino {
       _minimumTicksForCompressorChange(0),
       _remainingTicksForDoorClose(0),
       _minimumTicksForDoorClose(0),
+      _remainingTicksForHeldModeSwitch(0),
+      _minimumTicksForHeldModeSwitch(0),
       _isCompressorRunning(false),
       _isDefrostRunning(false),
       _isDoorOpen(false),
+      _isWiFiToggled(false),
       _isChanged(false) { }
 
     /**
@@ -302,6 +308,19 @@ class Chillduino {
     }
 
     /**
+     * Sets the minimum time (in ticks) for the mode switch to be
+     * considered held rather than pressed.
+     *
+     * This is used to toggle the status of wireless connectivity.
+     *
+     */
+    Chillduino& setMinimumTicksForHeldModeSwitch(unsigned long ticks) {
+      _minimumTicksForHeldModeSwitch = ticks;
+      _remainingTicksForHeldModeSwitch = ticks;
+      return *this;
+    }
+
+    /**
      * Returns true if the compressor is running.
      *
      */
@@ -323,6 +342,16 @@ class Chillduino {
      */
     bool isDoorOpen(void) const {
       return _isDoorOpen;
+    }
+
+    /**
+     * Returns true if WiFi status should be toggled.
+     *
+     * When the user holds the mode switch for 3 seconds WiFi is either
+     * turned on or off.
+     */
+    bool isWiFiToggled(void) const {
+      return _isWiFiToggled;
     }
 
     /**
@@ -363,6 +392,10 @@ class Chillduino {
 
       if (_remainingTicksForDoorClose > 0) {
         _remainingTicksForDoorClose--;
+      }
+
+      if (_remainingTicksForHeldModeSwitch > 0) {
+        _remainingTicksForHeldModeSwitch--;
       }
     }
 
@@ -405,8 +438,16 @@ class Chillduino {
       }
 
       if (isModeSwitchChanged()) {
-        if (isModeSwitchPressed()) {
-          cycleToNextMode();
+        if (isModeSwitchReleased()) {
+          if (isModeSwitchHeld()) {
+            toggleWiFi();
+          }
+          else {
+            cycleToNextMode();
+          }
+        }
+        else {
+          resetHeldModeSwitchTicks();
         }
 
         updatePreviousModeSwitchReading();
@@ -478,9 +519,18 @@ class Chillduino {
       return _previousModeSwitchReading != _currentModeSwitchReading;
     }
 
-    bool isModeSwitchPressed(void) const {
-      return (_previousModeSwitchReading == 0)
-        && (_currentModeSwitchReading == 1);
+    bool isModeSwitchReleased(void) const {
+      return (_previousModeSwitchReading == 1)
+        && (_currentModeSwitchReading == 0);
+    }
+
+    bool isModeSwitchHeld(void) const {
+      return (_remainingTicksForHeldModeSwitch == 0);
+    }
+
+    void resetHeldModeSwitchTicks(void) {
+      _remainingTicksForHeldModeSwitch = _minimumTicksForHeldModeSwitch;
+      _isWiFiToggled = false;
     }
 
     void updatePreviousModeSwitchReading(void) {
@@ -489,6 +539,11 @@ class Chillduino {
 
     void cycleToNextMode(void) {
       _mode = (_mode + 1) % CHILLDUINO_MODE_COUNT;
+      _isChanged = true;
+    }
+
+    void toggleWiFi(void) {
+      _isWiFiToggled = true;
       _isChanged = true;
     }
 
