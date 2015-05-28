@@ -34,6 +34,7 @@
 #define DOOR_SWITCH      13
 #define MODE_SWITCH      SCK
 #define THERMISTOR       A0
+#define RELAY_WATCHDOG   A2
 #define LEDS             A4
 #define LED_COUNT        10
 #define LED_OFF_R        0
@@ -56,9 +57,13 @@
 
 Chillduino chillduino;
 Adafruit_NeoPixel pixels(LED_COUNT, LEDS, NEO_GRB + NEO_KHZ800);
+int watchdog = 0;
 
 SIGNAL(TIMER0_COMPA_vect) {
   chillduino.tick();
+
+  digitalWrite(RELAY_WATCHDOG, watchdog);
+  watchdog ^= 1;
 }
 
 void setInterrupt(void) {
