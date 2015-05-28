@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.2.0"
+#define CHILLDUINO_VERSION "1.3.0"
 
 /**
  * The chillduino OFF mode.
@@ -364,6 +364,19 @@ class Chillduino {
      */
     bool isChanged(void) const {
       return _isChanged;
+    }
+
+    /**
+     * Forces the defrost to start running regardless of any conditions.
+     *
+     * This function is used for testing only and should not be used
+     * in production software as it may shorten the life of relays.
+     *
+     */
+    Chillduino& forceDefrost(void) {
+      stopRunningCompressor();
+      startRunningDefrost();
+      return *this;
     }
 
     /**
