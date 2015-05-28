@@ -123,6 +123,11 @@ void loop(void) {
       setLedColor(LED_OFF_R, LED_OFF_G, LED_OFF_B);
     }
 
+    if (chillduino.isWiFiToggled()) {
+      Serial.println("WiFi is toggled");
+      chillduino.forceDefrost();
+    }
+
     switch (chillduino.getMode()) {
       case CHILLDUINO_MODE_OFF:
         digitalWrite(LED_MODE_OFF, 1);

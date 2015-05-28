@@ -210,6 +210,17 @@ void shouldToggleWiFiWhenButtonIsHeld(void) {
   assert(!chillduino.isWiFiToggled());
 }
 
+void shouldBeCapableOfForcingADefrostForTesting(void) {
+  Chillduino chillduino = createChillduino();
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.forceDefrost();
+  assert(chillduino.isDefrostRunning());
+
+  chillduino.elapse(30 * TICKS_PER_MINUTE + TICKS_PER_SECOND);
+  assert(!chillduino.isDefrostRunning());
+}
+
 int main(void) {
   shouldStartWithCompressorAndDefrostNotRunning();
   shouldStartCompressorWhenFreshFoodIsWarm();
@@ -222,6 +233,7 @@ int main(void) {
   shouldSampleTheDoorSwitch();
   shouldSwitchModeWhenButtonIsPressed();
   shouldToggleWiFiWhenButtonIsHeld();
+  shouldBeCapableOfForcingADefrostForTesting();
 
   return 0;
 }

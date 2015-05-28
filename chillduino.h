@@ -367,6 +367,19 @@ class Chillduino {
     }
 
     /**
+     * Forces the defrost to start running regardless of any conditions.
+     *
+     * This function is used for testing only and should not be used
+     * in production software as it may shorten the life of relays.
+     *
+     */
+    Chillduino& forceDefrost(void) {
+      stopRunningCompressor();
+      startRunningDefrost();
+      return *this;
+    }
+
+    /**
      * Advances the chillduino timers by a single tick.
      *
      * The tick frequency should be consistent and chosen in a way that
