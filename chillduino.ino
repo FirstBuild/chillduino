@@ -96,7 +96,8 @@ void setup(void) {
     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
-    .setMinimumTicksForDoorClose(100);
+    .setMinimumTicksForDoorClose(100)
+    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
   
   pixels.begin();
   pixels.show();
