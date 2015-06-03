@@ -44,12 +44,12 @@
 #define LED_ON_G         255
 #define LED_ON_B         255
 
-#define THERMISTOR_MIN_COLD    294
-#define THERMISTOR_MAX_COLD    392
-#define THERMISTOR_MIN_COLDER  294
-#define THERMISTOR_MAX_COLDER  392
-#define THERMISTOR_MIN_COLDEST 294
-#define THERMISTOR_MAX_COLDEST 392
+#define THERMISTOR_MIN_COLD    231  
+#define THERMISTOR_MAX_COLD    335
+#define THERMISTOR_MIN_COLDER  231
+#define THERMISTOR_MAX_COLDER  335
+#define THERMISTOR_MIN_COLDEST 231
+#define THERMISTOR_MAX_COLDEST 335
 
 #define TICKS_PER_SECOND   ((unsigned long) 1000)
 #define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
@@ -96,7 +96,8 @@ void setup(void) {
     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
-    .setMinimumTicksForDoorClose(100);
+    .setMinimumTicksForDoorClose(100)
+    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
   
   pixels.begin();
   pixels.show();
