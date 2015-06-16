@@ -44,7 +44,7 @@
 #define LED_ON_G         255
 #define LED_ON_B         255
 
-#define THERMISTOR_MIN_COLD    232  
+#define THERMISTOR_MIN_COLD    250  
 #define THERMISTOR_MAX_COLD    335
 #define THERMISTOR_MIN_COLDER  232
 #define THERMISTOR_MAX_COLDER  335
