@@ -33,11 +33,15 @@ Chillduino createChillduino(void) {
     .setMode(CHILLDUINO_MODE_COLDER)
     .setMinimumFreshFoodThermistorReading(370)
     .setMaximumFreshFoodThermistorReading(392)
-    .setCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
+    .setMinimumCompressorTicksPerDefrost(TICKS_PER_HOUR)
+    .setMaximumCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
     .setMinimumTicksForDoorClose(100)
-    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
+    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND)
+    .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
+    .setMinimumOpensForForceDefrost(3)
+    .setCompressorTicksPerDoorOpen(15 * TICKS_PER_MINUTE);
 }
 
 void shouldStartWithCompressorAndDefrostNotRunning(void) {
@@ -214,10 +218,109 @@ void shouldBeCapableOfForcingADefrostForTesting(void) {
   Chillduino chillduino = createChillduino();
 
   assert(!chillduino.isDefrostRunning());
-  chillduino.forceDefrost();
-  assert(chillduino.isDefrostRunning());
 
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_SECOND);
+
+  assert(chillduino.isDefrostRunning());
   chillduino.elapse(30 * TICKS_PER_MINUTE + TICKS_PER_SECOND);
+  assert(!chillduino.isDefrostRunning());
+}
+
+void shouldDefrostSoonerWhenDoorIsOpened(void) {
+  Chillduino chillduino = createChillduino()
+    .setCurrentFreshFoodThermistorReading(400);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_HOUR + 45 * TICKS_PER_MINUTE);
+  assert(chillduino.isDefrostRunning());
+}
+
+void shouldDefrostNoSoonerThanMinimum(void) {
+  Chillduino chillduino = createChillduino()
+    .setCurrentFreshFoodThermistorReading(400);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_MINUTE);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_MINUTE);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_MINUTE);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(TICKS_PER_MINUTE);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDoorSwitchReading(1);
+  chillduino.elapse(45 * TICKS_PER_MINUTE);
+
   assert(!chillduino.isDefrostRunning());
 }
 
@@ -234,6 +337,8 @@ int main(void) {
   shouldSwitchModeWhenButtonIsPressed();
   shouldToggleWiFiWhenButtonIsHeld();
   shouldBeCapableOfForcingADefrostForTesting();
+  shouldDefrostSoonerWhenDoorIsOpened();
+  shouldDefrostNoSoonerThanMinimum();
 
   return 0;
 }

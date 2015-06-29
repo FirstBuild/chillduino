@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.4.1"
+#define CHILLDUINO_VERSION "1.5.0"
 
 /**
  * The chillduino OFF mode.
@@ -89,7 +89,10 @@ class Chillduino {
     int _previousModeSwitchReading;
     int _currentModeSwitchReading;
     int _mode;
-    unsigned long _compressorTicksPerDefrost;
+    int _minimumOpensForForceDefrost;
+    int _remainingOpensForForceDefrost;
+    unsigned long _minimumCompressorTicksPerDefrost;
+    unsigned long _maximumCompressorTicksPerDefrost;
     unsigned long _remainingCompressorTicksUntilDefrost;
     unsigned long _defrostDurationInTicks;
     unsigned long _remainingTicksWhileDefrosting;
@@ -99,6 +102,9 @@ class Chillduino {
     unsigned long _minimumTicksForDoorClose;
     unsigned long _remainingTicksForHeldModeSwitch;
     unsigned long _minimumTicksForHeldModeSwitch;
+    unsigned long _remainingTicksForForceDefrost;
+    unsigned long _minimumTicksForForceDefrost;
+    unsigned long _compressorTicksPerDoorOpen;
     bool _isCompressorRunning;
     bool _isDefrostRunning;
     bool _isDoorOpen;
@@ -110,31 +116,6 @@ class Chillduino {
     /**
      * Creates a new Chillduino and initializes each value to the default.
      *
-     * @example
-     *
-     * ``` cpp
-     * Chillduino chillduino;
-     *
-     * void setup(void) {
-     *   chillduino
-     *     .setMode(CHILLDUINO_MODE_COLDER)
-     *     .setMinimumFreshFoodThermistorReading(500)
-     *     .setMaximumFreshFoodThermistorReading(520)
-     *     .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
-     *     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
-     *     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
-     *     .setMinimumTicksForDoorClose(100)
-     *     .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
-     * }
-     *
-     * void loop(void) {
-     *   chillduino.setCurrentFreshFoodThermistorReading(analogRead(THERMISTOR));
-     *   chillduino.setDoorSwitchReading(digitalRead(DOOR_SWITCH));
-     *   chillduino.setModeSwitchReading(digitalRead(MODE_SWITCH));
-     *   chillduino.loop();
-     * }
-     * ```
-     *
      */
     Chillduino(void) :
       _minimumFreshFoodThermistorReading(0),
@@ -145,7 +126,10 @@ class Chillduino {
       _previousModeSwitchReading(0),
       _currentModeSwitchReading(0),
       _mode(CHILLDUINO_MODE_COLDER),
-      _compressorTicksPerDefrost(0),
+      _minimumOpensForForceDefrost(0),
+      _remainingOpensForForceDefrost(0),
+      _minimumCompressorTicksPerDefrost(0),
+      _maximumCompressorTicksPerDefrost(0),
       _remainingCompressorTicksUntilDefrost(0),
       _defrostDurationInTicks(0),
       _remainingTicksWhileDefrosting(0),
@@ -155,6 +139,9 @@ class Chillduino {
       _minimumTicksForDoorClose(0),
       _remainingTicksForHeldModeSwitch(0),
       _minimumTicksForHeldModeSwitch(0),
+      _remainingTicksForForceDefrost(0),
+      _minimumTicksForForceDefrost(0),
+      _compressorTicksPerDoorOpen(0),
       _isCompressorRunning(false),
       _isDefrostRunning(false),
       _isDoorOpen(false),
@@ -199,7 +186,22 @@ class Chillduino {
     }
 
     /**
-     * Sets the amount of time (in ticks) that the compressor must
+     * Sets the minimum amount of time (in ticks) that the compressor must
+     * run before running the defrost.
+     *
+     * This value is considered to be a minimum. The defrost is
+     * affected by the amount of time the fresh food doors have been
+     * open. Assuming the doors are opened non-stop, the defrost will
+     * start after the specified number of compressor ticks.
+     *
+     */
+    Chillduino& setMinimumCompressorTicksPerDefrost(unsigned long ticks) {
+      _minimumCompressorTicksPerDefrost = ticks;
+      return *this;
+    }
+
+    /**
+     * Sets the maximum amount of time (in ticks) that the compressor must
      * run before running the defrost.
      *
      * This value is considered to be a maximum. The defrost is also
@@ -208,8 +210,8 @@ class Chillduino {
      * after the specified number of compressor ticks.
      *
      */
-    Chillduino& setCompressorTicksPerDefrost(unsigned long ticks) {
-      _compressorTicksPerDefrost = ticks;
+    Chillduino& setMaximumCompressorTicksPerDefrost(unsigned long ticks) {
+      _maximumCompressorTicksPerDefrost = ticks;
       _remainingCompressorTicksUntilDefrost = ticks;
       return *this;
     }
@@ -298,6 +300,18 @@ class Chillduino {
     }
 
     /**
+     * Sets the minimum time (in ticks) allowed when forcing a defrost.
+     *
+     * To force a defrost the door must be opened a specific number
+     * of times within this time frame.
+     *
+     */
+    Chillduino& setMinimumTicksForForceDefrost(unsigned long ticks) {
+      _minimumTicksForForceDefrost = ticks;
+      return *this;
+    }
+
+    /**
      * Gets the current mode of the chillduino.
      *
      * The mode will change when the user has pressed the mode switch.
@@ -317,6 +331,28 @@ class Chillduino {
     Chillduino& setMinimumTicksForHeldModeSwitch(unsigned long ticks) {
       _minimumTicksForHeldModeSwitch = ticks;
       _remainingTicksForHeldModeSwitch = ticks;
+      return *this;
+    }
+
+    /**
+     * Sets the minimum number of opens that must occur to force a defrost.
+     *
+     * To force a defrost the door must be opened at least this many
+     * times within the specified time frame.
+     *
+     */
+    Chillduino& setMinimumOpensForForceDefrost(unsigned long opens) {
+      _minimumOpensForForceDefrost = opens;
+      return *this;
+    }
+
+    /**
+     * Sets the amount of time (in ticks) that the compressor runtime
+     * is reduced each time the fresh food door is opened.
+     *
+     */
+    Chillduino& setCompressorTicksPerDoorOpen(unsigned long ticks) {
+      _compressorTicksPerDoorOpen = ticks;
       return *this;
     }
 
@@ -367,19 +403,6 @@ class Chillduino {
     }
 
     /**
-     * Forces the defrost to start running regardless of any conditions.
-     *
-     * This function is used for testing only and should not be used
-     * in production software as it may shorten the life of relays.
-     *
-     */
-    Chillduino& forceDefrost(void) {
-      stopRunningCompressor();
-      startRunningDefrost();
-      return *this;
-    }
-
-    /**
      * Advances the chillduino timers by a single tick.
      *
      * The tick frequency should be consistent and chosen in a way that
@@ -409,6 +432,10 @@ class Chillduino {
 
       if (_remainingTicksForHeldModeSwitch > 0) {
         _remainingTicksForHeldModeSwitch--;
+      }
+
+      if (_remainingTicksForForceDefrost > 0) {
+        _remainingTicksForForceDefrost--;
       }
     }
 
@@ -445,6 +472,7 @@ class Chillduino {
       if (isDoorSwitchChanged()) {
         updatePreviousDoorSwitchReading();
         resetDoorSwitchTicks();
+        checkForForceDefrost();
       }
       else {
         checkForDoorClose();
@@ -513,9 +541,20 @@ class Chillduino {
     }
 
     void resetDoorSwitchTicks(void) {
+      if (_remainingTicksForForceDefrost == 0) {
+        _remainingTicksForForceDefrost = _minimumTicksForForceDefrost;
+        _remainingOpensForForceDefrost = _minimumOpensForForceDefrost;
+      }
+
       if (!_isDoorOpen) {
         _isDoorOpen = true;
         _isChanged = true;
+        _remainingOpensForForceDefrost--;
+
+        if (_remainingCompressorTicksUntilDefrost >
+            _minimumCompressorTicksPerDefrost) {
+          _remainingCompressorTicksUntilDefrost -= _compressorTicksPerDoorOpen;
+        }
       }
 
       _remainingTicksForDoorClose = _minimumTicksForDoorClose;
@@ -525,6 +564,14 @@ class Chillduino {
       if (_isDoorOpen && _remainingTicksForDoorClose == 0) {
         _isDoorOpen = false;
         _isChanged = true;
+      }
+    }
+
+    void checkForForceDefrost(void) {
+      if (_remainingOpensForForceDefrost == 0 &&
+          _remainingTicksForForceDefrost > 0) {
+        stopRunningCompressor();
+        startRunningDefrost();
       }
     }
 
@@ -581,7 +628,7 @@ class Chillduino {
     void stopRunningDefrost(void) {
       _isChanged = true;
       _isDefrostRunning = false;
-      _remainingCompressorTicksUntilDefrost = _compressorTicksPerDefrost;
+      _remainingCompressorTicksUntilDefrost = _maximumCompressorTicksPerDefrost;
     }
 };
 
