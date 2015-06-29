@@ -93,11 +93,15 @@ void setup(void) {
     .setMode(CHILLDUINO_MODE_COLDER)
     .setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDER)
     .setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLDER)
-    .setCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
+    .setMinimumCompressorTicksPerDefrost(24 * TICKS_PER_HOUR)
+    .setMaximumCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
     .setMinimumTicksForDoorClose(100)
-    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND);
+    .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND)
+    .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
+    .setMinimumOpensForForceDefrost(3)
+    .setCompressorTicksPerDoorOpen(4 * TICKS_PER_HOUR);
   
   pixels.begin();
   pixels.show();
@@ -131,7 +135,6 @@ void loop(void) {
 
     if (chillduino.isWiFiToggled()) {
       Serial.println("WiFi is toggled");
-      chillduino.forceDefrost();
     }
 
     switch (chillduino.getMode()) {
