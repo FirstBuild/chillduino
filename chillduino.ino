@@ -101,7 +101,8 @@ void setup(void) {
     .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND)
     .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumOpensForForceDefrost(3)
-    .setCompressorTicksPerDoorOpen(4 * TICKS_PER_HOUR);
+    .setCompressorTicksPerDoorOpen(4 * TICKS_PER_HOUR)
+    .setMinimumTicksForBimetalCutoff(100);
   
   pixels.begin();
   pixels.show();
