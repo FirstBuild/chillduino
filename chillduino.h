@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.7.1"
+#define CHILLDUINO_VERSION "1.8.0"
 
 /**
  * The chillduino OFF mode.
@@ -500,7 +500,16 @@ class Chillduino {
     void loop(void) {
       _isChanged = false;
 
-      if (isCompressorReadyForChange()) {
+      if (_mode == CHILLDUINO_MODE_OFF) {
+        if (isCompressorRunning()) {
+          stopRunningCompressor();
+        }
+
+        if (isDefrostRunning()) {
+          stopRunningDefrost();
+        }
+      }
+      else if (isCompressorReadyForChange()) {
         if (isDefrostRunning()) {
           if (isDefrostComplete()) {
             stopRunningDefrost();

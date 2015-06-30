@@ -331,7 +331,7 @@ void shouldStopDefrostingWhenBimetalCutsOffPowerToTheDefrost(void) {
   chillduino.setCurrentFreshFoodThermistorReading(400)
     .elapse(2 * TICKS_PER_HOUR + TICKS_PER_MINUTE);
 
-  chillduino.elapse(10 * TICKS_PER_MINUTE);
+  chillduino.elapse(20 * TICKS_PER_MINUTE);
   assert(!chillduino.isBimetalCutoff());
   assert(chillduino.isDefrostRunning());
 
@@ -346,6 +346,44 @@ void shouldStopDefrostingWhenBimetalCutsOffPowerToTheDefrost(void) {
   chillduino.setDefrostSwitchReading(0);
 
   assert(chillduino.isBimetalCutoff());
+  assert(!chillduino.isDefrostRunning());
+
+  chillduino.elapse(TICKS_PER_MINUTE);
+  assert(!chillduino.isBimetalCutoff());
+  assert(!chillduino.isDefrostRunning());
+}
+
+void shouldTurnOffCompressorInOffMode(void) {
+  Chillduino chillduino = createChillduino()
+    .setCurrentFreshFoodThermistorReading(400);
+
+  chillduino.elapse(TICKS_PER_MINUTE);
+  assert(chillduino.isCompressorRunning());
+
+  chillduino.setMode(CHILLDUINO_MODE_OFF);
+  chillduino.elapse(TICKS_PER_MINUTE);
+  assert(!chillduino.isCompressorRunning());
+}
+
+void shouldTurnOffDefrostInOffMode(void) {
+  Chillduino chillduino = createChillduino()
+    .setCurrentFreshFoodThermistorReading(400);
+
+  chillduino.elapse(2 * TICKS_PER_HOUR + TICKS_PER_MINUTE);
+  assert(chillduino.isDefrostRunning());
+
+  chillduino.setMode(CHILLDUINO_MODE_OFF);
+  chillduino.elapse(TICKS_PER_MINUTE);
+  assert(!chillduino.isDefrostRunning());
+}
+
+void shouldLeaveOffCompressorAndDefrostInOffMode(void) {
+  Chillduino chillduino = createChillduino()
+    .setMode(CHILLDUINO_MODE_OFF)
+    .setCurrentFreshFoodThermistorReading(400);
+
+  chillduino.elapse(TICKS_PER_HOUR);
+  assert(!chillduino.isCompressorRunning());
   assert(!chillduino.isDefrostRunning());
 }
 
@@ -365,6 +403,9 @@ int main(void) {
   shouldDefrostSoonerWhenDoorIsOpened();
   shouldDefrostNoSoonerThanMinimum();
   shouldStopDefrostingWhenBimetalCutsOffPowerToTheDefrost();
+  shouldTurnOffCompressorInOffMode();
+  shouldTurnOffDefrostInOffMode();
+  shouldLeaveOffCompressorAndDefrostInOffMode();
 
   return 0;
 }
