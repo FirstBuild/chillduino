@@ -120,6 +120,7 @@ void loop(void) {
   chillduino.setCurrentFreshFoodThermistorReading(analogRead(THERMISTOR));
   chillduino.setDoorSwitchReading(digitalRead(DOOR_SWITCH));
   chillduino.setModeSwitchReading(digitalRead(MODE_SWITCH));
+  chillduino.setDefrostSwitchReading(digitalRead(DEFROST_SWITCH));
   chillduino.loop();
 
   if (chillduino.isChanged()) {
