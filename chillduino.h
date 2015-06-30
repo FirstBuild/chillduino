@@ -84,6 +84,8 @@ class Chillduino {
     int _minimumFreshFoodThermistorReading;
     int _currentFreshFoodThermistorReading;
     int _maximumFreshFoodThermistorReading;
+    int _previousDefrostSwitchReading;
+    int _currentDefrostSwitchReading;
     int _previousDoorSwitchReading;
     int _currentDoorSwitchReading;
     int _previousModeSwitchReading;
@@ -105,8 +107,11 @@ class Chillduino {
     unsigned long _remainingTicksForForceDefrost;
     unsigned long _minimumTicksForForceDefrost;
     unsigned long _compressorTicksPerDoorOpen;
+    unsigned long _remainingTicksForBimetalCutoff;
+    unsigned long _minimumTicksForBimetalCutoff;
     bool _isCompressorRunning;
     bool _isDefrostRunning;
+    bool _isBimetalCutoff;
     bool _isDoorOpen;
     bool _isWiFiToggled;
     bool _isChanged;
@@ -121,6 +126,8 @@ class Chillduino {
       _minimumFreshFoodThermistorReading(0),
       _currentFreshFoodThermistorReading(0),
       _maximumFreshFoodThermistorReading(0),
+      _previousDefrostSwitchReading(0),
+      _currentDefrostSwitchReading(0),
       _previousDoorSwitchReading(0),
       _currentDoorSwitchReading(0),
       _previousModeSwitchReading(0),
@@ -142,8 +149,11 @@ class Chillduino {
       _remainingTicksForForceDefrost(0),
       _minimumTicksForForceDefrost(0),
       _compressorTicksPerDoorOpen(0),
+      _remainingTicksForBimetalCutoff(0),
+      _minimumTicksForBimetalCutoff(0),
       _isCompressorRunning(false),
       _isDefrostRunning(false),
+      _isBimetalCutoff(false),
       _isDoorOpen(false),
       _isWiFiToggled(false),
       _isChanged(false) { }
@@ -273,6 +283,33 @@ class Chillduino {
     }
 
     /**
+     * Sets the minimum time (in ticks) that the defrost switch reading
+     * must remain unchanged before triggering a defrost close event.
+     *
+     * The defrost switch will maintain LOW or HIGH while the defrost is closed.
+     * While the defrost is open, the value will toggle around once every
+     * 10 milliseconds.
+     *
+     */
+    Chillduino& setMinimumTicksForBimetalCutoff(unsigned long ticks) {
+      _minimumTicksForBimetalCutoff = ticks;
+      return *this;
+    }
+
+    /**
+     * Sets the current defrost switch reading.
+     *
+     * This value should be updated as frequently as possible.
+     * The reading is compared to the minimum reading to determine
+     * if the defrost is open or closed.
+     *
+     */
+    Chillduino& setDefrostSwitchReading(int reading) {
+      _currentDefrostSwitchReading = reading;
+      return *this;
+    }
+
+    /**
      * Sets the mode switch reading.
      *
      * This value should be updated as frequently as possible.
@@ -381,6 +418,14 @@ class Chillduino {
     }
 
     /**
+     * Returns true if the defrost should be canceled.
+     *
+     */
+    bool isBimetalCutoff(void) const {
+      return _isBimetalCutoff;
+    }
+
+    /**
      * Returns true if WiFi status should be toggled.
      *
      * When the user holds the mode switch for 3 seconds WiFi is either
@@ -437,6 +482,10 @@ class Chillduino {
       if (_remainingTicksForForceDefrost > 0) {
         _remainingTicksForForceDefrost--;
       }
+
+      if (_remainingTicksForBimetalCutoff > 0) {
+        _remainingTicksForBimetalCutoff--;
+      }
     }
 
     /**
@@ -454,6 +503,9 @@ class Chillduino {
       if (isCompressorReadyForChange()) {
         if (isDefrostRunning()) {
           if (isDefrostComplete()) {
+            stopRunningDefrost();
+          }
+          else if (isBimetalCutoff()) {
             stopRunningDefrost();
           }
         }
@@ -476,6 +528,14 @@ class Chillduino {
       }
       else {
         checkForDoorClose();
+      }
+
+      if (isDefrostSwitchChanged()) {
+        updatePreviousDefrostSwitchReading();
+        resetDefrostSwitchTicks();
+      }
+      else {
+        checkForBimetalCutoff();
       }
 
       if (isModeSwitchChanged()) {
@@ -572,6 +632,30 @@ class Chillduino {
           _remainingTicksForForceDefrost > 0) {
         stopRunningCompressor();
         startRunningDefrost();
+      }
+    }
+
+    bool isDefrostSwitchChanged(void) const {
+      return _previousDefrostSwitchReading != _currentDefrostSwitchReading;
+    }
+
+    void updatePreviousDefrostSwitchReading(void) {
+      _previousDefrostSwitchReading = _currentDefrostSwitchReading;
+    }
+
+    void resetDefrostSwitchTicks(void) {
+      if (_isBimetalCutoff) {
+        _isBimetalCutoff = false;
+        _isChanged = true;
+      }
+
+      _remainingTicksForBimetalCutoff = _minimumTicksForBimetalCutoff;
+    }
+
+    void checkForBimetalCutoff(void) {
+      if (!_isBimetalCutoff && _remainingTicksForBimetalCutoff == 0) {
+        _isBimetalCutoff = true;
+        _isChanged = true;
       }
     }
 

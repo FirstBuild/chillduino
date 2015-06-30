@@ -41,7 +41,8 @@ Chillduino createChillduino(void) {
     .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND)
     .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumOpensForForceDefrost(3)
-    .setCompressorTicksPerDoorOpen(15 * TICKS_PER_MINUTE);
+    .setCompressorTicksPerDoorOpen(15 * TICKS_PER_MINUTE)
+    .setMinimumTicksForBimetalCutoff(100);
 }
 
 void shouldStartWithCompressorAndDefrostNotRunning(void) {
@@ -127,7 +128,14 @@ void shouldStopDefrostingWhenComplete(void) {
   Chillduino chillduino = createChillduino();
 
   chillduino.setCurrentFreshFoodThermistorReading(400)
-    .elapse(3 * TICKS_PER_HOUR);
+    .elapse(2 * TICKS_PER_HOUR);
+
+  for (int i = 0; i < 100000; i++) {
+    chillduino.setDefrostSwitchReading(0);
+    chillduino.elapse(10);
+    chillduino.setDefrostSwitchReading(1);
+    chillduino.elapse(10);
+  }
 
   assert(!chillduino.isDefrostRunning());
   assert(chillduino.isCompressorRunning());
@@ -324,6 +332,29 @@ void shouldDefrostNoSoonerThanMinimum(void) {
   assert(!chillduino.isDefrostRunning());
 }
 
+void shouldStopDefrostingWhenBimetalCutsOffPowerToTheDefrost(void) {
+  Chillduino chillduino = createChillduino();
+
+  chillduino.setCurrentFreshFoodThermistorReading(400)
+    .elapse(2 * TICKS_PER_HOUR + TICKS_PER_MINUTE);
+
+  assert(chillduino.isDefrostRunning());
+  chillduino.setDefrostSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(0);
+  assert(chillduino.isDefrostRunning());
+
+  chillduino.elapse(10 * TICKS_PER_MINUTE);
+  assert(chillduino.isBimetalCutoff());
+  assert(!chillduino.isDefrostRunning());
+}
+
 int main(void) {
   shouldStartWithCompressorAndDefrostNotRunning();
   shouldStartCompressorWhenFreshFoodIsWarm();
@@ -339,6 +370,7 @@ int main(void) {
   shouldBeCapableOfForcingADefrostForTesting();
   shouldDefrostSoonerWhenDoorIsOpened();
   shouldDefrostNoSoonerThanMinimum();
+  shouldStopDefrostingWhenBimetalCutsOffPowerToTheDefrost();
 
   return 0;
 }
