@@ -84,6 +84,11 @@ void setLedColor(int r, int g, int b) {
 }
 
 void setup(void) {
+  pinMode(LED_MODE_OFF, OUTPUT);
+  pinMode(LED_MODE_COLD, OUTPUT);
+  pinMode(LED_MODE_COLDER, OUTPUT);
+  pinMode(LED_MODE_COLDEST, OUTPUT);
+
   pinMode(DOOR_SWITCH, INPUT);
   pinMode(DEFROST_SWITCH, INPUT);
   pinMode(COMPRESSOR, OUTPUT);
