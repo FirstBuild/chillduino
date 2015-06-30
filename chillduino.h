@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.7.0"
+#define CHILLDUINO_VERSION "1.7.1"
 
 /**
  * The chillduino OFF mode.
@@ -644,8 +644,8 @@ class Chillduino {
     }
 
     void resetDefrostSwitchTicks(void) {
-      if (_isBimetalCutoff) {
-        _isBimetalCutoff = false;
+      if (!_isBimetalCutoff) {
+        _isBimetalCutoff = true;
         _isChanged = true;
       }
 
@@ -653,8 +653,8 @@ class Chillduino {
     }
 
     void checkForBimetalCutoff(void) {
-      if (!_isBimetalCutoff && _remainingTicksForBimetalCutoff == 0) {
-        _isBimetalCutoff = true;
+      if (_isBimetalCutoff && _remainingTicksForBimetalCutoff == 0) {
+        _isBimetalCutoff = false;
         _isChanged = true;
       }
     }

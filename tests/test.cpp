@@ -130,13 +130,6 @@ void shouldStopDefrostingWhenComplete(void) {
   chillduino.setCurrentFreshFoodThermistorReading(400)
     .elapse(2 * TICKS_PER_HOUR);
 
-  for (int i = 0; i < 100000; i++) {
-    chillduino.setDefrostSwitchReading(0);
-    chillduino.elapse(10);
-    chillduino.setDefrostSwitchReading(1);
-    chillduino.elapse(10);
-  }
-
   assert(!chillduino.isDefrostRunning());
   assert(chillduino.isCompressorRunning());
 }
@@ -338,19 +331,20 @@ void shouldStopDefrostingWhenBimetalCutsOffPowerToTheDefrost(void) {
   chillduino.setCurrentFreshFoodThermistorReading(400)
     .elapse(2 * TICKS_PER_HOUR + TICKS_PER_MINUTE);
 
-  assert(chillduino.isDefrostRunning());
-  chillduino.setDefrostSwitchReading(0);
-  chillduino.elapse(10);
-  chillduino.setDefrostSwitchReading(1);
-  chillduino.elapse(10);
-  chillduino.setDefrostSwitchReading(0);
-  chillduino.elapse(10);
-  chillduino.setDefrostSwitchReading(1);
-  chillduino.elapse(10);
-  chillduino.setDefrostSwitchReading(0);
+  chillduino.elapse(10 * TICKS_PER_MINUTE);
+  assert(!chillduino.isBimetalCutoff());
   assert(chillduino.isDefrostRunning());
 
-  chillduino.elapse(10 * TICKS_PER_MINUTE);
+  chillduino.setDefrostSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(0);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(1);
+  chillduino.elapse(10);
+  chillduino.setDefrostSwitchReading(0);
+
   assert(chillduino.isBimetalCutoff());
   assert(!chillduino.isDefrostRunning());
 }
