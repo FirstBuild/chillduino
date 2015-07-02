@@ -21,6 +21,7 @@
  *
  */
 
+#include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
 #include "chillduino.h"
 
@@ -55,9 +56,16 @@
 #define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
 #define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
 
+#define EEPROM_UNSET 0xff
+#define EEPROM_COMPRESSOR_RUNTIME 0
+#define EEPROM_MODE (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned long))
+#define COMPRESSOR_RUNTIME (100 * TICKS_PER_HOUR)
+
 Chillduino chillduino;
 Adafruit_NeoPixel pixels(LED_COUNT, LEDS, NEO_GRB + NEO_KHZ800);
 int watchdog = 0;
+unsigned long runtime = 0;
+int mode = 0;
 
 SIGNAL(TIMER0_COMPA_vect) {
   chillduino.tick();
@@ -93,13 +101,34 @@ void setup(void) {
   pinMode(DEFROST_SWITCH, INPUT);
   pinMode(COMPRESSOR, OUTPUT);
   pinMode(DEFROST, OUTPUT);
-  
+
+  EEPROM.get(EEPROM_COMPRESSOR_RUNTIME, runtime);
+
+  if (runtime > COMPRESSOR_RUNTIME) {
+    runtime = COMPRESSOR_RUNTIME;
+  }
+
+  mode = EEPROM.read(EEPROM_MODE);
+
+  switch (mode) {
+    case CHILLDUINO_MODE_OFF:
+    case CHILLDUINO_MODE_COLD:
+    case CHILLDUINO_MODE_COLDER:
+    case CHILLDUINO_MODE_COLDEST:
+      break;
+
+    default:
+      mode = CHILLDUINO_MODE_COLDER;
+      break;
+  }
+
   chillduino
-    .setMode(CHILLDUINO_MODE_COLDER)
+    .setMode(mode)
     .setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDER)
     .setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLDER)
     .setMinimumCompressorTicksPerDefrost(24 * TICKS_PER_HOUR)
-    .setMaximumCompressorTicksPerDefrost(100 * TICKS_PER_HOUR)
+    .setMaximumCompressorTicksPerDefrost(COMPRESSOR_RUNTIME)
+    .setRemainingCompressorTicksUntilDefrost(runtime)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
     .setMinimumTicksForDoorClose(100)
@@ -123,6 +152,19 @@ void loop(void) {
   chillduino.setDefrostSwitchReading(digitalRead(DEFROST_SWITCH));
   chillduino.loop();
 
+  int current = chillduino.getRemainingCompressorTicksUntilDefrost()
+    / TICKS_PER_HOUR;
+
+  int previous = runtime / TICKS_PER_HOUR;
+
+  if (current != previous) {
+    runtime = chillduino.getRemainingCompressorTicksUntilDefrost();
+    EEPROM.put(EEPROM_COMPRESSOR_RUNTIME, runtime);
+
+    Serial.print("Compressor ticks until defrost: ");
+    Serial.println(runtime);
+  }
+
   if (chillduino.isChanged()) {
     Serial.println(chillduino.isDoorOpen()
       ? "Door is open" : "Door is closed");
@@ -142,6 +184,11 @@ void loop(void) {
 
     if (chillduino.isWiFiToggled()) {
       Serial.println("WiFi is toggled");
+    }
+
+    if (mode != chillduino.getMode()) {
+      mode = chillduino.getMode();
+      EEPROM.write(EEPROM_MODE, mode);
     }
 
     switch (chillduino.getMode()) {

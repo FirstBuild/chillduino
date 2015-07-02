@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.8.0"
+#define CHILLDUINO_VERSION "1.9.0"
 
 /**
  * The chillduino OFF mode.
@@ -222,6 +222,24 @@ class Chillduino {
      */
     Chillduino& setMaximumCompressorTicksPerDefrost(unsigned long ticks) {
       _maximumCompressorTicksPerDefrost = ticks;
+      return *this;
+    }
+
+    /**
+     * Gets the amount of time (in ticks) the compressor still needs to
+     * be ran before a defrost cycle is able to be started.
+     *
+     */
+    unsigned long getRemainingCompressorTicksUntilDefrost(void) const {
+      return _remainingCompressorTicksUntilDefrost;
+    }
+
+    /**
+     * Sets the amount of time (in ticks) the compressor still needs to
+     * be ran before a defrost cycle is able to be started.
+     *
+     */
+    Chillduino& setRemainingCompressorTicksUntilDefrost(unsigned long ticks) {
       _remainingCompressorTicksUntilDefrost = ticks;
       return *this;
     }

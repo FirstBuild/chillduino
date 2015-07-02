@@ -35,6 +35,7 @@ Chillduino createChillduino(void) {
     .setMaximumFreshFoodThermistorReading(392)
     .setMinimumCompressorTicksPerDefrost(TICKS_PER_HOUR)
     .setMaximumCompressorTicksPerDefrost(2 * TICKS_PER_HOUR)
+    .setRemainingCompressorTicksUntilDefrost(2 * TICKS_PER_HOUR)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
     .setMinimumTicksForCompressorChange(10 * TICKS_PER_MINUTE)
     .setMinimumTicksForDoorClose(100)
@@ -387,6 +388,21 @@ void shouldLeaveOffCompressorAndDefrostInOffMode(void) {
   assert(!chillduino.isDefrostRunning());
 }
 
+#include <iostream>
+
+void shouldPersistCompressorRuntime(void) {
+  Chillduino chillduino = createChillduino()
+    .setCurrentFreshFoodThermistorReading(400);
+
+  chillduino.elapse(2 * TICKS_PER_HOUR + 1);
+  std::cout << chillduino.getRemainingCompressorTicksUntilDefrost() << std::endl;
+  assert(chillduino.getRemainingCompressorTicksUntilDefrost() == 0);
+
+  chillduino.elapse(30 * TICKS_PER_MINUTE + 1);
+  assert(chillduino.getRemainingCompressorTicksUntilDefrost() ==
+    2 * TICKS_PER_HOUR);
+}
+
 int main(void) {
   shouldStartWithCompressorAndDefrostNotRunning();
   shouldStartCompressorWhenFreshFoodIsWarm();
@@ -406,6 +422,7 @@ int main(void) {
   shouldTurnOffCompressorInOffMode();
   shouldTurnOffDefrostInOffMode();
   shouldLeaveOffCompressorAndDefrostInOffMode();
+  shouldPersistCompressorRuntime();
 
   return 0;
 }
