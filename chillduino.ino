@@ -23,8 +23,16 @@
 
 #include <EEPROM.h>
 #include <Adafruit_NeoPixel.h>
+#include <chillhub.h>
 #include "chillduino.h"
 
+#define CHILLDUINO_UUID "e79f1dd1-48bb-4305-a306-6bb3ca53a5b7"
+#define THERMISTOR_ID    0x91
+
+#define RX               0
+#define TX               1
+#define SDA              2
+#define SCL              3
 #define LED_MODE_COLDEST 4
 #define LED_MODE_COLDER  5
 #define LED_MODE_COLD    6
@@ -62,6 +70,7 @@
 #define COMPRESSOR_RUNTIME (100 * TICKS_PER_HOUR)
 
 Chillduino chillduino;
+chInterface ChillHub;
 Adafruit_NeoPixel pixels(LED_COUNT, LEDS, NEO_GRB + NEO_KHZ800);
 int watchdog = 0;
 unsigned long runtime = 0;
@@ -91,16 +100,46 @@ void setLedColor(int r, int g, int b) {
   pixels.show();
 }
 
+void chillduino_announce(void) {
+  ChillHub.setup("chillduino", CHILLDUINO_UUID);
+  ChillHub.subscribe(deviceIdRequestType, (chillhubCallbackFunction) chillduino_announce);
+  ChillHub.subscribe(keepAliveType, (chillhubCallbackFunction) chillduino_keepalive);
+  ChillHub.subscribe(setDeviceUUIDType, (chillhubCallbackFunction) chillduino_set_uuid);
+  ChillHub.createCloudResourceU16("thermistor", THERMISTOR_ID, 0, 0);
+}
+
+void chillduino_keepalive(uint8_t unused) {
+  (void) unused;
+}
+
+void chillduino_set_uuid(uint8_t *uuid) {
+  (void) uuid;
+}
+
+void chillduino_push(void) {
+  static unsigned long previous = millis();
+  unsigned long current = millis();
+
+  if ((current - previous) > 5000) {
+    previous = current;
+    ChillHub.updateCloudResourceU16(THERMISTOR_ID, analogRead(THERMISTOR));
+  }
+}
+
 void setup(void) {
+  pinMode(RX, INPUT);
+  pinMode(TX, INPUT);
+  pinMode(SDA, INPUT);
+  pinMode(SCL, INPUT);
   pinMode(LED_MODE_OFF, OUTPUT);
   pinMode(LED_MODE_COLD, OUTPUT);
   pinMode(LED_MODE_COLDER, OUTPUT);
   pinMode(LED_MODE_COLDEST, OUTPUT);
-
   pinMode(DOOR_SWITCH, INPUT);
   pinMode(DEFROST_SWITCH, INPUT);
   pinMode(COMPRESSOR, OUTPUT);
   pinMode(DEFROST, OUTPUT);
+  pinMode(RELAY_WATCHDOG, OUTPUT);
 
   EEPROM.get(EEPROM_COMPRESSOR_RUNTIME, runtime);
 
@@ -141,8 +180,10 @@ void setup(void) {
   pixels.begin();
   pixels.show();
   
-  Serial.begin(9600);
+  Serial.begin(115200);
+
   setInterrupt();
+  chillduino_announce();
 }
 
 void loop(void) {
@@ -161,19 +202,19 @@ void loop(void) {
     runtime = chillduino.getRemainingCompressorTicksUntilDefrost();
     EEPROM.put(EEPROM_COMPRESSOR_RUNTIME, runtime);
 
-    Serial.print("Compressor ticks until defrost: ");
-    Serial.println(runtime);
+    // Serial.print("Compressor ticks until defrost: ");
+    // Serial.println(runtime);
   }
 
   if (chillduino.isChanged()) {
-    Serial.println(chillduino.isDoorOpen()
-      ? "Door is open" : "Door is closed");
+    // Serial.println(chillduino.isDoorOpen()
+    //  ? "Door is open" : "Door is closed");
 
-    Serial.println(chillduino.isCompressorRunning()
-      ? "Compressor is running" : "Compressor is not running");
+    // Serial.println(chillduino.isCompressorRunning()
+    //  ? "Compressor is running" : "Compressor is not running");
 
-    Serial.println(chillduino.isDefrostRunning()
-      ? "Defrost is running" : "Defrost is not running");
+    // Serial.println(chillduino.isDefrostRunning()
+    //  ? "Defrost is running" : "Defrost is not running");
     
     if (chillduino.isDoorOpen()) {
       setLedColor(LED_ON_R, LED_ON_G, LED_ON_B);
@@ -183,7 +224,7 @@ void loop(void) {
     }
 
     if (chillduino.isWiFiToggled()) {
-      Serial.println("WiFi is toggled");
+      // Serial.println("WiFi is toggled");
     }
 
     if (mode != chillduino.getMode()) {
@@ -233,4 +274,7 @@ void loop(void) {
     digitalWrite(COMPRESSOR, chillduino.isCompressorRunning());
     digitalWrite(DEFROST, chillduino.isDefrostRunning());
   }
+
+  chillduino_push();
+  ChillHub.loop();
 }
