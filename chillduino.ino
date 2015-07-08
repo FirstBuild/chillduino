@@ -24,6 +24,10 @@
 #include <Adafruit_NeoPixel.h>
 #include "chillduino.h"
 
+#define RX  0
+#define TX  1
+#define SDA 2
+#define SCL 3
 #define LED_MODE_COLDEST 4
 #define LED_MODE_COLDER  5
 #define LED_MODE_COLD    6
@@ -84,6 +88,11 @@ void setLedColor(int r, int g, int b) {
 }
 
 void setup(void) {
+  pinMode(RX, INPUT);
+  pinMode(TX, INPUT);
+  pinMode(SDA, INPUT);
+  pinMode(SCL, INPUT);
+  
   pinMode(LED_MODE_OFF, OUTPUT);
   pinMode(LED_MODE_COLD, OUTPUT);
   pinMode(LED_MODE_COLDER, OUTPUT);
