@@ -36,7 +36,7 @@
 #define LED_MODE_COLDEST 4
 #define LED_MODE_COLDER  5
 #define LED_MODE_COLD    6
-#define LED_MODE_OFF     8
+#define LED_MODE_OFF     7
 #define COMPRESSOR       9
 #define DEFROST          10
 #define DEFROST_SWITCH   12
