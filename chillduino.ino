@@ -102,6 +102,7 @@ void setup(void) {
   pinMode(DEFROST_SWITCH, INPUT);
   pinMode(COMPRESSOR, OUTPUT);
   pinMode(DEFROST, OUTPUT);
+  pinMode(RELAY_WATCHDOG, OUTPUT);
   
   chillduino
     .setMode(CHILLDUINO_MODE_COLDER)
