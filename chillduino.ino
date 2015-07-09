@@ -28,6 +28,10 @@
 
 #define CHILLDUINO_UUID "e79f1dd1-48bb-4305-a306-6bb3ca53a5b7"
 #define THERMISTOR_ID    0x91
+#define COMPRESSOR_ID    0x92
+#define DEFROST_ID       0x93
+#define DOOR_ID          0x94
+#define BIMETAL_ID       0x95
 
 #define RX               0
 #define TX               1
@@ -106,6 +110,10 @@ void chillduino_announce(void) {
   ChillHub.subscribe(keepAliveType, (chillhubCallbackFunction) chillduino_keepalive);
   ChillHub.subscribe(setDeviceUUIDType, (chillhubCallbackFunction) chillduino_set_uuid);
   ChillHub.createCloudResourceU16("thermistor", THERMISTOR_ID, 0, 0);
+  ChillHub.createCloudResourceU16("compressor", COMPRESSOR_ID, 0, 0);
+  ChillHub.createCloudResourceU16("defrost", DEFROST_ID, 0, 0);
+  ChillHub.createCloudResourceU16("door", DOOR_ID, 0, 0);
+  ChillHub.createCloudResourceU16("bimetal", BIMETAL_ID, 0, 0);
 }
 
 void chillduino_keepalive(uint8_t unused) {
@@ -271,8 +279,18 @@ void loop(void) {
         break;
     };
     
-    digitalWrite(COMPRESSOR, chillduino.isCompressorRunning());
-    digitalWrite(DEFROST, chillduino.isDefrostRunning());
+    int isCompressorRunning = chillduino.isCompressorRunning();
+    int isDefrostRunning = chillduino.isDefrostRunning();
+    int isDoorOpen = chillduino.isDoorOpen();
+    int isBimetalCutoff = chillduino.isBimetalCutoff();
+
+    digitalWrite(COMPRESSOR, isCompressorRunning);
+    digitalWrite(DEFROST, isDefrostRunning);
+
+    ChillHub.updateCloudResourceU16(COMPRESSOR_ID, isCompressorRunning);
+    ChillHub.updateCloudResourceU16(DEFROST_ID, isDefrostRunning);
+    ChillHub.updateCloudResourceU16(DOOR_ID, isDoorOpen);
+    ChillHub.updateCloudResourceU16(BIMETAL_ID, isBimetalCutoff);
   }
 
   chillduino_push();
