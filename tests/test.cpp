@@ -388,14 +388,11 @@ void shouldLeaveOffCompressorAndDefrostInOffMode(void) {
   assert(!chillduino.isDefrostRunning());
 }
 
-#include <iostream>
-
 void shouldPersistCompressorRuntime(void) {
   Chillduino chillduino = createChillduino()
     .setCurrentFreshFoodThermistorReading(400);
 
   chillduino.elapse(2 * TICKS_PER_HOUR + 1);
-  std::cout << chillduino.getRemainingCompressorTicksUntilDefrost() << std::endl;
   assert(chillduino.getRemainingCompressorTicksUntilDefrost() == 0);
 
   chillduino.elapse(30 * TICKS_PER_MINUTE + 1);

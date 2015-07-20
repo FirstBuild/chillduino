@@ -233,6 +233,7 @@ void loop(void) {
 
     if (chillduino.isWiFiToggled()) {
       // Serial.println("WiFi is toggled");
+      ChillHub.sendU8Msg(0x2e, 0);
     }
 
     if (mode != chillduino.getMode()) {
