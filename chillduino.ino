@@ -22,7 +22,6 @@
  */
 
 #include <EEPROM.h>
-#include <Adafruit_NeoPixel.h>
 #include <chillhub.h>
 #include "chillduino.h"
 
@@ -35,8 +34,6 @@
 
 #define RX               0
 #define TX               1
-#define SDA              2
-#define SCL              3
 #define LED_MODE_COLDEST 4
 #define LED_MODE_COLDER  5
 #define LED_MODE_COLD    6
@@ -44,18 +41,11 @@
 #define COMPRESSOR       9
 #define DEFROST          10
 #define DEFROST_SWITCH   12
-#define DOOR_SWITCH      13
+#define DOOR_LED         13
 #define MODE_SWITCH      SCK
 #define THERMISTOR       A0
 #define RELAY_WATCHDOG   A2
-#define LEDS             A4
-#define LED_COUNT        10
-#define LED_OFF_R        0
-#define LED_OFF_G        0
-#define LED_OFF_B        0
-#define LED_ON_R         255
-#define LED_ON_G         255
-#define LED_ON_B         255
+#define DOOR_SWITCH      A4
 
 #define THERMISTOR_MIN_COLD    294
 #define THERMISTOR_MAX_COLD    392
@@ -73,9 +63,11 @@
 #define EEPROM_MODE (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned long))
 #define COMPRESSOR_RUNTIME (100 * TICKS_PER_HOUR)
 
+#define BRIGHTNESS_STEP_IN_MILLISECONDS 5
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 Chillduino chillduino;
 chInterface ChillHub;
-Adafruit_NeoPixel pixels(LED_COUNT, LEDS, NEO_GRB + NEO_KHZ800);
 int watchdog = 0;
 unsigned long runtime = 0;
 int mode = 0;
@@ -94,14 +86,6 @@ void setInterrupt(void) {
 
 void clearInterrupt(void) {
   TIMSK0 &= ~_BV(OCIE0A);
-}
-
-void setLedColor(int r, int g, int b) {
-  for (int i = 0; i < LED_COUNT; i++) {
-    pixels.setPixelColor(i, pixels.Color(r, g, b));
-  }
-  
-  pixels.show();
 }
 
 void chillduino_announce(void) {
@@ -134,6 +118,25 @@ void chillduino_push(void) {
   }
 }
 
+void adjust_brightness(void) {
+  static int brightness = 0;
+  static unsigned long previous = millis();
+  unsigned long current = millis();
+
+  if ((current - previous) > BRIGHTNESS_STEP_IN_MILLISECONDS) {
+    previous = current;
+
+    if (chillduino.isDoorOpen()) {
+      brightness = MIN(brightness + 1, 255);
+    }
+    else {
+      brightness = 0;
+    }
+
+    analogWrite(DOOR_LED, brightness);
+  }
+}
+
 void setup(void) {
   pinMode(RX, INPUT);
   pinMode(TX, INPUT);
@@ -148,6 +151,7 @@ void setup(void) {
   pinMode(COMPRESSOR, OUTPUT);
   pinMode(DEFROST, OUTPUT);
   pinMode(RELAY_WATCHDOG, OUTPUT);
+  pinMode(DOOR_LED, OUTPUT);
 
   EEPROM.get(EEPROM_COMPRESSOR_RUNTIME, runtime);
 
@@ -184,10 +188,7 @@ void setup(void) {
     .setMinimumOpensForForceDefrost(3)
     .setCompressorTicksPerDoorOpen(4 * TICKS_PER_HOUR)
     .setMinimumTicksForBimetalCutoff(100);
-  
-  pixels.begin();
-  pixels.show();
-  
+
   Serial.begin(115200);
 
   setInterrupt();
@@ -224,13 +225,6 @@ void loop(void) {
     // Serial.println(chillduino.isDefrostRunning()
     //  ? "Defrost is running" : "Defrost is not running");
     
-    if (chillduino.isDoorOpen()) {
-      setLedColor(LED_ON_R, LED_ON_G, LED_ON_B);
-    }
-    else {
-      setLedColor(LED_OFF_R, LED_OFF_G, LED_OFF_B);
-    }
-
     if (chillduino.isWiFiToggled()) {
       // Serial.println("WiFi is toggled");
       ChillHub.sendU8Msg(0x2e, 0);
@@ -294,6 +288,7 @@ void loop(void) {
     ChillHub.updateCloudResourceU16(BIMETAL_ID, isBimetalCutoff);
   }
 
+  adjust_brightness();
   chillduino_push();
   ChillHub.loop();
 }
