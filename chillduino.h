@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.13.0"
+#define CHILLDUINO_VERSION "1.13.1"
 
 /**
  * The chillduino OFF mode.

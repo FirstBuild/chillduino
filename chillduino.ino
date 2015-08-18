@@ -153,6 +153,8 @@ void setup(void) {
   pinMode(RELAY_WATCHDOG, OUTPUT);
   pinMode(DOOR_LED, OUTPUT);
 
+  TCCR4B &= 0b11111001;
+
   EEPROM.get(EEPROM_COMPRESSOR_RUNTIME, runtime);
 
   if (runtime > COMPRESSOR_RUNTIME) {
