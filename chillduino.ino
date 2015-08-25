@@ -25,7 +25,7 @@
 #include <chillhub.h>
 #include "chillduino.h"
 
-#define CHILLDUINO_UUID "e79f1dd1-48bb-4305-a306-6bb3ca53a5b7"
+#define CHILLDUINO_UUID "00000000-0000-0000-0000-000000000000"
 #define THERMISTOR_ID    0x91
 #define COMPRESSOR_ID    0x92
 #define DEFROST_ID       0x93
@@ -39,7 +39,7 @@
 #define LED_MODE_COLD    6
 #define LED_MODE_OFF     7
 #define COMPRESSOR       9
-#define DEFROST          10
+#define DEFROST          11
 #define DEFROST_SWITCH   12
 #define DOOR_LED         13
 #define MODE_SWITCH      SCK
@@ -58,13 +58,14 @@
 #define TICKS_PER_MINUTE   (60 * TICKS_PER_SECOND)
 #define TICKS_PER_HOUR     (60 * TICKS_PER_MINUTE)
 
-#define EEPROM_UNSET 0xff
 #define EEPROM_COMPRESSOR_RUNTIME 0
 #define EEPROM_MODE (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned long))
 #define COMPRESSOR_RUNTIME (100 * TICKS_PER_HOUR)
 
+#define DOOR_LIGHT_DURATION_IN_MILLISECONDS 300000
 #define BRIGHTNESS_STEP_IN_MILLISECONDS 5
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 Chillduino chillduino;
 chInterface ChillHub;
@@ -120,6 +121,7 @@ void chillduino_push(void) {
 
 void adjust_brightness(void) {
   static int brightness = 0;
+  static unsigned long started = 0;
   static unsigned long previous = millis();
   unsigned long current = millis();
 
@@ -127,10 +129,19 @@ void adjust_brightness(void) {
     previous = current;
 
     if (chillduino.isDoorOpen()) {
-      brightness = MIN(brightness + 1, 255);
+      if (started == 0) {
+        started = millis();
+      }
+      else if ((current - started) > DOOR_LIGHT_DURATION_IN_MILLISECONDS) {
+        brightness = MAX(brightness - 1, 0);
+      }
+      else {
+        brightness = MIN(brightness + 1, 255);
+      }
     }
     else {
       brightness = 0;
+      started = 0;
     }
 
     analogWrite(DOOR_LED, brightness);
