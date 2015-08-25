@@ -39,8 +39,8 @@
 #define LED_MODE_COLD    6
 #define LED_MODE_OFF     7
 #define COMPRESSOR       9
-#define DEFROST          11
-#define DEFROST_SWITCH   12
+#define DEFROST          10
+#define DEFROST_SWITCH   11
 #define DOOR_LED         13
 #define MODE_SWITCH      SCK
 #define THERMISTOR       A0
