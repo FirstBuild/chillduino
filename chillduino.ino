@@ -25,7 +25,6 @@
 #include <chillhub.h>
 #include "chillduino.h"
 
-#define CHILLDUINO_UUID "00000000-0000-0000-0000-000000000000"
 #define THERMISTOR_ID    0x91
 #define COMPRESSOR_ID    0x92
 #define DEFROST_ID       0x93
@@ -60,6 +59,7 @@
 
 #define EEPROM_COMPRESSOR_RUNTIME 0
 #define EEPROM_MODE (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned long))
+#define EEPROM_UUID (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned char))
 #define COMPRESSOR_RUNTIME (100 * TICKS_PER_HOUR)
 
 #define DOOR_LIGHT_DURATION_IN_MILLISECONDS 300000
@@ -69,6 +69,7 @@
 
 Chillduino chillduino;
 chInterface ChillHub;
+char uuid[37];
 int watchdog = 0;
 unsigned long runtime = 0;
 int mode = 0;
@@ -90,7 +91,7 @@ void clearInterrupt(void) {
 }
 
 void chillduino_announce(void) {
-  ChillHub.setup("chillduino", CHILLDUINO_UUID);
+  ChillHub.setup("chillduino", uuid);
   ChillHub.subscribe(deviceIdRequestType, (chillhubCallbackFunction) chillduino_announce);
   ChillHub.subscribe(keepAliveType, (chillhubCallbackFunction) chillduino_keepalive);
   ChillHub.subscribe(setDeviceUUIDType, (chillhubCallbackFunction) chillduino_set_uuid);
@@ -148,6 +149,63 @@ void adjust_brightness(void) {
   }
 }
 
+void create_uuid_v4(int address) {
+  unsigned char c = EEPROM.read(address + 6);
+
+  if ((c & B11110000) != B01000000) {
+    // not a valid version 4 uuid so create one
+
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, B01000000 | random(16));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, ((random(256) & B00111111) | B10000000));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+    EEPROM.write(address++, random(256));
+  }
+}
+
+void read_hex(int address, char *uuid) {
+  static const char *hex = "0123456789abcdef";
+  int c = EEPROM.read(address);
+
+  uuid[0] = hex[c >> 4];
+  uuid[1] = hex[c & 4];
+}
+
+void read_uuid(int address, char *uuid) {
+  read_hex(address++, uuid + 0);
+  read_hex(address++, uuid + 2);
+  read_hex(address++, uuid + 4);
+  read_hex(address++, uuid + 6);
+  uuid[8] = '-';
+  read_hex(address++, uuid + 9);
+  read_hex(address++, uuid + 11);
+  uuid[13] = '-';
+  read_hex(address++, uuid + 14);
+  read_hex(address++, uuid + 16);
+  uuid[18] = '-';
+  read_hex(address++, uuid + 19);
+  read_hex(address++, uuid + 21);
+  uuid[23] = '-';
+  read_hex(address++, uuid + 24);
+  read_hex(address++, uuid + 26);
+  read_hex(address++, uuid + 28);
+  read_hex(address++, uuid + 30);
+  read_hex(address++, uuid + 32);
+  read_hex(address++, uuid + 34);
+  uuid[36] = 0;
+}
+
 void setup(void) {
   pinMode(RX, INPUT);
   pinMode(TX, INPUT);
@@ -186,6 +244,9 @@ void setup(void) {
       break;
   }
 
+  create_uuid_v4(EEPROM_UUID);
+  read_uuid(EEPROM_UUID, uuid);
+
   chillduino
     .setMode(mode)
     .setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDER)
@@ -198,6 +259,7 @@ void setup(void) {
     .setMinimumTicksForDoorClose(100)
     .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND)
     .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
+    .setMinimumTicksForCloseBeforeForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumOpensForForceDefrost(3)
     .setCompressorTicksPerDoorOpen(4 * TICKS_PER_HOUR)
     .setMinimumTicksForBimetalCutoff(100);

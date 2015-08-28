@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.15.1"
+#define CHILLDUINO_VERSION "1.16.0"
 
 /**
  * The chillduino OFF mode.
@@ -106,6 +106,9 @@ class Chillduino {
     unsigned long _minimumTicksForHeldModeSwitch;
     unsigned long _remainingTicksForForceDefrost;
     unsigned long _minimumTicksForForceDefrost;
+    unsigned long _previousTicksForCloseBeforeForceDefrost;
+    unsigned long _remainingTicksForCloseBeforeForceDefrost;
+    unsigned long _minimumTicksForCloseBeforeForceDefrost;
     unsigned long _compressorTicksPerDoorOpen;
     unsigned long _remainingTicksForBimetalCutoff;
     unsigned long _minimumTicksForBimetalCutoff;
@@ -148,6 +151,9 @@ class Chillduino {
       _minimumTicksForHeldModeSwitch(0),
       _remainingTicksForForceDefrost(0),
       _minimumTicksForForceDefrost(0),
+      _previousTicksForCloseBeforeForceDefrost(0),
+      _remainingTicksForCloseBeforeForceDefrost(0),
+      _minimumTicksForCloseBeforeForceDefrost(0),
       _compressorTicksPerDoorOpen(0),
       _remainingTicksForBimetalCutoff(0),
       _minimumTicksForBimetalCutoff(0),
@@ -367,6 +373,20 @@ class Chillduino {
     }
 
     /**
+     * Sets the minimum time (in ticks) the door must be closed
+     * before forcing a defrost.
+     *
+     * To force a defrost the door must be opened a specific number
+     * of times within a time frame, then left closed for this
+     * amount of time.
+     *
+     */
+    Chillduino& setMinimumTicksForCloseBeforeForceDefrost(unsigned long ticks) {
+      _minimumTicksForCloseBeforeForceDefrost = ticks;
+      return *this;
+    }
+
+    /**
      * Gets the current mode of the chillduino.
      *
      * The mode will change when the user has pressed the mode switch.
@@ -504,6 +524,10 @@ class Chillduino {
       if (_remainingTicksForBimetalCutoff > 0) {
         _remainingTicksForBimetalCutoff--;
       }
+
+      if (_remainingTicksForCloseBeforeForceDefrost > 0) {
+        _remainingTicksForCloseBeforeForceDefrost--;
+      }
     }
 
     /**
@@ -551,11 +575,12 @@ class Chillduino {
       if (isDoorSwitchChanged()) {
         updatePreviousDoorSwitchReading();
         resetDoorSwitchTicks();
-        checkForForceDefrost();
       }
       else {
         checkForDoorClose();
       }
+
+      checkForForceDefrost();
 
       if (isDefrostSwitchChanged()) {
         updatePreviousDefrostSwitchReading();
@@ -651,15 +676,25 @@ class Chillduino {
       if (_isDoorOpen && _remainingTicksForDoorClose == 0) {
         _isDoorOpen = false;
         _isChanged = true;
+
+        if (_remainingOpensForForceDefrost == 0 &&
+            _remainingTicksForForceDefrost > 0) {
+          _remainingTicksForCloseBeforeForceDefrost =
+            _minimumTicksForCloseBeforeForceDefrost;
+        }
       }
     }
 
     void checkForForceDefrost(void) {
       if (_remainingOpensForForceDefrost == 0 &&
-          _remainingTicksForForceDefrost > 0) {
+          _remainingTicksForCloseBeforeForceDefrost == 0 &&
+          _previousTicksForCloseBeforeForceDefrost > 0) {
         stopRunningCompressor();
         startRunningDefrost();
       }
+
+      _previousTicksForCloseBeforeForceDefrost =
+        _remainingTicksForCloseBeforeForceDefrost;
     }
 
     bool isDefrostSwitchChanged(void) const {

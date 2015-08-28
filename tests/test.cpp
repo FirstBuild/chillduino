@@ -42,6 +42,7 @@ Chillduino createChillduino(void) {
     .setMinimumTicksForHeldModeSwitch(3 * TICKS_PER_SECOND)
     .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumOpensForForceDefrost(3)
+    .setMinimumTicksForCloseBeforeForceDefrost(5 * TICKS_PER_SECOND)
     .setCompressorTicksPerDoorOpen(15 * TICKS_PER_MINUTE)
     .setMinimumTicksForBimetalCutoff(100);
 }
@@ -220,7 +221,6 @@ void shouldBeCapableOfForcingADefrostForTesting(void) {
   Chillduino chillduino = createChillduino();
 
   assert(!chillduino.isDefrostRunning());
-
   chillduino.setDoorSwitchReading(0);
   chillduino.elapse(10);
   chillduino.setDoorSwitchReading(1);
@@ -230,6 +230,7 @@ void shouldBeCapableOfForcingADefrostForTesting(void) {
   chillduino.setDoorSwitchReading(1);
   chillduino.elapse(TICKS_PER_SECOND);
 
+  assert(!chillduino.isDefrostRunning());
   chillduino.setDoorSwitchReading(0);
   chillduino.elapse(10);
   chillduino.setDoorSwitchReading(1);
@@ -239,6 +240,7 @@ void shouldBeCapableOfForcingADefrostForTesting(void) {
   chillduino.setDoorSwitchReading(1);
   chillduino.elapse(TICKS_PER_SECOND);
 
+  assert(!chillduino.isDefrostRunning());
   chillduino.setDoorSwitchReading(0);
   chillduino.elapse(10);
   chillduino.setDoorSwitchReading(1);
@@ -247,6 +249,9 @@ void shouldBeCapableOfForcingADefrostForTesting(void) {
   chillduino.elapse(10);
   chillduino.setDoorSwitchReading(1);
   chillduino.elapse(TICKS_PER_SECOND);
+
+  assert(!chillduino.isDefrostRunning());
+  chillduino.elapse(5 * TICKS_PER_SECOND);
 
   assert(chillduino.isDefrostRunning());
   chillduino.elapse(30 * TICKS_PER_MINUTE + TICKS_PER_SECOND);
