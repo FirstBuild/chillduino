@@ -45,6 +45,7 @@
 #define THERMISTOR       A0
 #define RELAY_WATCHDOG   A2
 #define DOOR_SWITCH      A4
+#define RNG              A11
 
 #define THERMISTOR_MIN_COLD    294
 #define THERMISTOR_MAX_COLD    374
@@ -149,6 +150,35 @@ void adjust_brightness(void) {
   }
 }
 
+int reading_changed(int pin) {
+  static int previous = analogRead(pin);
+  int current = analogRead(pin);
+  int changed = (previous == current) ? 0 : 1;
+  previous = current;
+  return changed;
+}
+
+int von_neuman(int pin) {
+  int a, b;
+
+  do {
+    a = reading_changed(pin);
+    b = reading_changed(pin);
+  } while (a == b);
+
+  return a;
+}
+
+int get_seed(int pin, int bits) {
+  int seed = 0;
+
+  while (bits-- > 0) {
+    seed |= (von_neuman(pin) << bits);
+  }
+
+  return seed;
+}
+
 void create_uuid_v4(int address) {
   unsigned char c = EEPROM.read(address + 6);
 
@@ -207,6 +237,7 @@ void read_uuid(int address, char *uuid) {
 }
 
 void setup(void) {
+  pinMode(RNG, INPUT);
   pinMode(RX, INPUT);
   pinMode(TX, INPUT);
   pinMode(SDA, INPUT);
@@ -244,6 +275,7 @@ void setup(void) {
       break;
   }
 
+  srandom(get_seed(RNG, 32));
   create_uuid_v4(EEPROM_UUID);
   read_uuid(EEPROM_UUID, uuid);
 
