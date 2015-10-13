@@ -61,7 +61,7 @@
 #define EEPROM_COMPRESSOR_RUNTIME 0
 #define EEPROM_MODE (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned long))
 #define EEPROM_UUID (EEPROM_COMPRESSOR_RUNTIME + sizeof(unsigned char))
-#define COMPRESSOR_RUNTIME (100 * TICKS_PER_HOUR)
+#define COMPRESSOR_RUNTIME (96 * TICKS_PER_HOUR)
 
 #define DOOR_LIGHT_DURATION_IN_MILLISECONDS 300000
 #define BRIGHTNESS_STEP_IN_MILLISECONDS 5
@@ -283,7 +283,7 @@ void setup(void) {
     .setMode(mode)
     .setMinimumFreshFoodThermistorReading(THERMISTOR_MIN_COLDER)
     .setMaximumFreshFoodThermistorReading(THERMISTOR_MAX_COLDER)
-    .setMinimumCompressorTicksPerDefrost(24 * TICKS_PER_HOUR)
+    .setMinimumCompressorTicksPerDefrost(12 * TICKS_PER_HOUR)
     .setMaximumCompressorTicksPerDefrost(COMPRESSOR_RUNTIME)
     .setRemainingCompressorTicksUntilDefrost(runtime)
     .setDefrostDurationInTicks(30 * TICKS_PER_MINUTE)
@@ -293,7 +293,6 @@ void setup(void) {
     .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumTicksForCloseBeforeForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumOpensForForceDefrost(3)
-    .setCompressorTicksPerDoorOpen(4 * TICKS_PER_HOUR)
     .setMinimumTicksForBimetalCutoff(100);
 
   Serial.begin(115200);

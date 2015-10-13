@@ -43,7 +43,6 @@ Chillduino createChillduino(void) {
     .setMinimumTicksForForceDefrost(5 * TICKS_PER_SECOND)
     .setMinimumOpensForForceDefrost(3)
     .setMinimumTicksForCloseBeforeForceDefrost(5 * TICKS_PER_SECOND)
-    .setCompressorTicksPerDoorOpen(15 * TICKS_PER_MINUTE)
     .setMinimumTicksForBimetalCutoff(100);
 }
 
@@ -126,12 +125,22 @@ void shouldDefrostAfterAccumulatingCompressorRuntime(void) {
   assert(chillduino.isDefrostRunning());
 }
 
-void shouldStopDefrostingWhenComplete(void) {
+void shouldDelayDefrostingWhenComplete(void) {
   Chillduino chillduino = createChillduino();
 
   chillduino.setCurrentFreshFoodThermistorReading(400)
-    .elapse(2 * TICKS_PER_HOUR);
+    .elapse(2 * TICKS_PER_HOUR + TICKS_PER_MINUTE);
 
+  assert(chillduino.isDefrostRunning());
+  chillduino.elapse(30 * TICKS_PER_MINUTE);
+  assert(!chillduino.isDefrostRunning());
+  assert(chillduino.isCompressorRunning());
+
+  chillduino.elapse(TICKS_PER_HOUR);
+  assert(!chillduino.isCompressorRunning());
+  assert(chillduino.isDefrostRunning());
+
+  chillduino.elapse(30 * TICKS_PER_MINUTE);
   assert(!chillduino.isDefrostRunning());
   assert(chillduino.isCompressorRunning());
 }
@@ -263,14 +272,15 @@ void shouldDefrostSoonerWhenDoorIsOpened(void) {
     .setCurrentFreshFoodThermistorReading(400);
 
   assert(!chillduino.isDefrostRunning());
-  chillduino.setDoorSwitchReading(0);
-  chillduino.elapse(10);
-  chillduino.setDoorSwitchReading(1);
-  chillduino.elapse(10);
-  chillduino.setDoorSwitchReading(0);
-  chillduino.elapse(10);
-  chillduino.setDoorSwitchReading(1);
-  chillduino.elapse(TICKS_PER_HOUR + 45 * TICKS_PER_MINUTE);
+
+  for (int i = 0; i < 3000; i++) {
+    chillduino.setDoorSwitchReading(0);
+    chillduino.elapse(10);
+    chillduino.setDoorSwitchReading(1);
+    chillduino.elapse(10);
+  }
+
+  chillduino.elapse(2 * TICKS_PER_HOUR - TICKS_PER_MINUTE);
   assert(chillduino.isDefrostRunning());
 }
 
@@ -402,7 +412,7 @@ void shouldPersistCompressorRuntime(void) {
 
   chillduino.elapse(30 * TICKS_PER_MINUTE + 1);
   assert(chillduino.getRemainingCompressorTicksUntilDefrost() ==
-    2 * TICKS_PER_HOUR);
+    TICKS_PER_HOUR);
 }
 
 int main(void) {
@@ -412,7 +422,7 @@ int main(void) {
   shouldMaintainCompressorOnceStarted();
   shouldMaintainCompressorOnceStopped();
   shouldDefrostAfterAccumulatingCompressorRuntime();
-  shouldStopDefrostingWhenComplete();
+  shouldDelayDefrostingWhenComplete();
   shouldSignalWhenAChangeOccurs();
   shouldSampleTheDoorSwitch();
   shouldSwitchModeWhenButtonIsPressed();

@@ -33,7 +33,7 @@
  * the version in the code matches the version in the documentation.
  *
  */
-#define CHILLDUINO_VERSION "1.16.1"
+#define CHILLDUINO_VERSION "1.17.0"
 
 /**
  * The chillduino OFF mode.
@@ -109,9 +109,9 @@ class Chillduino {
     unsigned long _previousTicksForCloseBeforeForceDefrost;
     unsigned long _remainingTicksForCloseBeforeForceDefrost;
     unsigned long _minimumTicksForCloseBeforeForceDefrost;
-    unsigned long _compressorTicksPerDoorOpen;
     unsigned long _remainingTicksForBimetalCutoff;
     unsigned long _minimumTicksForBimetalCutoff;
+    unsigned long _doorOpenDurationInTicks;
     bool _isCompressorRunning;
     bool _isDefrostRunning;
     bool _isBimetalCutoff;
@@ -154,9 +154,9 @@ class Chillduino {
       _previousTicksForCloseBeforeForceDefrost(0),
       _remainingTicksForCloseBeforeForceDefrost(0),
       _minimumTicksForCloseBeforeForceDefrost(0),
-      _compressorTicksPerDoorOpen(0),
       _remainingTicksForBimetalCutoff(0),
       _minimumTicksForBimetalCutoff(0),
+      _doorOpenDurationInTicks(0),
       _isCompressorRunning(false),
       _isDefrostRunning(false),
       _isBimetalCutoff(false),
@@ -422,16 +422,6 @@ class Chillduino {
     }
 
     /**
-     * Sets the amount of time (in ticks) that the compressor runtime
-     * is reduced each time the fresh food door is opened.
-     *
-     */
-    Chillduino& setCompressorTicksPerDoorOpen(unsigned long ticks) {
-      _compressorTicksPerDoorOpen = ticks;
-      return *this;
-    }
-
-    /**
      * Returns true if the compressor is running.
      *
      */
@@ -528,6 +518,13 @@ class Chillduino {
       if (_remainingTicksForCloseBeforeForceDefrost > 0) {
         _remainingTicksForCloseBeforeForceDefrost--;
       }
+
+      if (_isDoorOpen) {
+        _doorOpenDurationInTicks++;
+      }
+      else {
+        _doorOpenDurationInTicks = 0;
+      }
     }
 
     /**
@@ -554,7 +551,7 @@ class Chillduino {
       else if (isCompressorReadyForChange()) {
         if (isDefrostRunning()) {
           if (isDefrostComplete()) {
-            stopRunningDefrost();
+            delayDefrost();
           }
           else if (isBimetalCutoff()) {
             stopRunningDefrost();
@@ -662,11 +659,6 @@ class Chillduino {
         _isDoorOpen = true;
         _isChanged = true;
         _remainingOpensForForceDefrost--;
-
-        if (_remainingCompressorTicksUntilDefrost >
-            _minimumCompressorTicksPerDefrost) {
-          _remainingCompressorTicksUntilDefrost -= _compressorTicksPerDoorOpen;
-        }
       }
 
       _remainingTicksForDoorClose = _minimumTicksForDoorClose;
@@ -681,6 +673,11 @@ class Chillduino {
             _remainingTicksForForceDefrost > 0) {
           _remainingTicksForCloseBeforeForceDefrost =
             _minimumTicksForCloseBeforeForceDefrost;
+        }
+
+        if (_remainingCompressorTicksUntilDefrost >
+            _minimumCompressorTicksPerDefrost) {
+          _remainingCompressorTicksUntilDefrost -= _doorOpenDurationInTicks;
         }
       }
     }
@@ -775,6 +772,12 @@ class Chillduino {
       _isChanged = true;
       _isDefrostRunning = false;
       _remainingCompressorTicksUntilDefrost = _maximumCompressorTicksPerDefrost;
+    }
+
+    void delayDefrost(void) {
+      _isChanged = true;
+      _isDefrostRunning = false;
+      _remainingCompressorTicksUntilDefrost = _minimumCompressorTicksPerDefrost;
     }
 };
 
